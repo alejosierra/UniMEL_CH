@@ -10,10 +10,15 @@ This repository is the official implementation for the paper titled "UniMEL: A U
 
 #### Step 1: Install and set up environment
 
-```python
-pip install -r requirements.txt
-conda create -n unimel python==3.8.18
-conda activate unimel
+```bash
+uv sync
+```
+
+If you need to install the pinned Python version first:
+
+```bash
+uv python install 3.8.18
+uv sync
 ```
 
 
@@ -57,7 +62,8 @@ bash run.sh 0 wikidiverse  # for wikidiverse
         wikidiverse.yaml
 │  framework.png
 │  README.md
-│  requirements.txt
+│  pyproject.toml
+│  uv.lock
 │  run.sh
 ```
 
