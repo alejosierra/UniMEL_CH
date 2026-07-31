@@ -41,11 +41,6 @@ embed:
   emb_model_dir: "SFR-Embedding-Mistral"
   train_data_dir: "dataset/wikimusa/entities/entity2sum_train.json"
   train_embed_dir: "dataset/wikimusa/entities/embedding_SFR_train.json"
-  val_data_dir: "dataset/wikimusa/entities/entity2sum_val.json"
-  val_embed_dir: "dataset/wikimusa/entities/embedding_SFR_val.json"
-  test_data_dir: "dataset/wikimusa/entities/entity2sum_test.json"
-  test_embed_dir: "dataset/wikimusa/entities/embedding_SFR_test.json"
-
 
 top:
   K: 5
@@ -55,12 +50,12 @@ top:
   train_database_sum: "dataset/wikimusa/entities/entity2sum_train.json"
   train_mention_dir: "dataset/wikimusa/candidates/train_mentions_des_llava_llama.json"
   train_mention_topK_dir: "dataset/wikimusa/candidates/train_mentions_des_llava_llama_topK.json"
-  val_database_emb: "dataset/wikimusa/entities/embedding_SFR_val.json"
-  val_database_sum: "dataset/wikimusa/entities/entity2sum_val.json"
+  val_database_emb: "dataset/wikimusa/entities/embedding_SFR_train.json"
+  val_database_sum: "dataset/wikimusa/entities/entity2sum_train.json"
   val_mention_dir: "dataset/wikimusa/candidates/val_mentions_des_llava_llama.json"
   val_mention_topK_dir: "dataset/wikimusa/candidates/val_mentions_des_llava_llama_topK.json"
-  test_database_emb: "dataset/wikimusa/entities/embedding_SFR_test.json"
-  test_database_sum: "dataset/wikimusa/entities/entity2sum_test.json"
+  test_database_emb: "dataset/wikimusa/entities/embedding_SFR_train.json"
+  test_database_sum: "dataset/wikimusa/entities/entity2sum_train.json"
   test_mention_dir: "dataset/wikimusa/candidates/test_mentions_des_llava_llama.json"
   test_mention_topK_dir: "dataset/wikimusa/candidates/test_mentions_des_llava_llama_topK.json"
 
@@ -71,10 +66,10 @@ infer:
   train_database_sum: "dataset/wikimusa/entities/entity2sum_train.json"
   train_mention_topK_dir: "dataset/wikimusa/candidates/train_mentions_des_llava_llama_topK.json"
   train_res_topK_dir: "dataset/wikimusa/candidates/res_train_top5_SFR.json"
-  val_database_sum: "dataset/wikimusa/entities/entity2sum_val.json"
+  val_database_sum: "dataset/wikimusa/entities/entity2sum_train.json"
   val_mention_topK_dir: "dataset/wikimusa/candidates/val_mentions_des_llava_llama_topK.json"
   val_res_topK_dir: "dataset/wikimusa/candidates/res_val_top5_SFR.json"
-  test_database_sum: "dataset/wikimusa/entities/data4format_test1.json"
-  test_mention_topK_dir: "dataset/wikimusa/candidates/test_w_100cands_pos_source_llava2_top5_SFR.json"
+  test_database_sum: "dataset/wikimusa/entities/entity2sum_train.json"
+  test_mention_topK_dir: "dataset/wikimusa/candidates/test_mentions_des_llava_llama_topK.json"
   test_res_topK_dir: "dataset/wikimusa/candidates/res_test_top5_SFR.json"
 

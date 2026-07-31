@@ -5,9 +5,9 @@ if __name__=='__main__':
     # train
     augment_ent(args.ent.train_data_dir,args.ent.train_output_dir,args.ent.model_dir)
     # valid
-    augment_ent(args.ent.val_data_dir,args.ent.val_output_dir,args.ent.model_dir)
+    #augment_ent(args.ent.val_data_dir,args.ent.val_output_dir,args.ent.model_dir)
     # test
-    augment_ent(args.ent.test_data_dir,args.ent.test_output_dir,args.ent.model_dir)
+    #augment_ent(args.ent.test_data_dir,args.ent.test_output_dir,args.ent.model_dir)
 
     # train
     augment_men_img(args.mention.train_mentions_dir,args.mention.train_save_dir,args.mention.model_dir_img,args.mention.train_kb_img_folder)
