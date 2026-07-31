@@ -14,10 +14,6 @@ ent:
   # dictionary with keys id and value is the description
   train_data_dir: "dataset/wikimusa/entities/entity2brief_train.json"
   train_output_dir: "dataset/wikimusa/entities/entity2sum_train.json"
-  val_data_dir: "dataset/wikimusa/entities/entity2brief_val.json"
-  val_output_dir: "dataset/wikimusa/entities/entity2sum_val.json"
-  test_data_dir: "dataset/wikimusa/entities/entity2brief_test.json"
-  test_output_dir: "dataset/wikimusa/entities/entity2sum_test.json"
 
 mention:
   # iamge

@@ -1,4 +1,4 @@
-# Dataset structure expected by the UniMEL pipeline
+# Dataset structure expected by the UniMEL pipeline (Wikidiverse)
 
 This repository expects a set of JSON files and image folders for the Wikidiverse pipeline. The code in [code/untils/dataset.py](code/untils/dataset.py) and [code/main.py](code/main.py) reads these files in several stages.
 

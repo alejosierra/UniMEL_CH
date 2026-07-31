@@ -148,15 +148,14 @@ def augment_men_img(mentions_dir,save_dir,model_id,image_dir):
 
 
     image_dir = image_dir
-    PROMPT = """The target entity is a \"{mention_category}\" named \"{mention_name}\".
+    PROMPT = """
     The image describes \"{mention_context}\"
-    Introduce the \"{mention_category}\" named \"{mention_name}\". Answer follow the format: "The {mention_name} refer to..."
-    Only generate an introduction to the target entity, not a description of the image.
+    Introduce the image. Answer follow the format: "The image refers to..."
     """
 
     for i in tqdm(range(len(mentions))):
-        prompt = f"[INST] <image>\n{PROMPT.format(mention_category=mentions[i]['category'],mention_name=mentions[i]['name'],mention_context=mentions[i]['context'])} [/INST]"
-        im_dir = image_dir + str(i) +".jpg"
+        prompt = f"[INST] <image>\n{PROMPT.format(mention_context=mentions[i]['context'])} [/INST]"
+        im_dir = image_dir + "/" + mentions[i]['image']
         if os.path.exists(im_dir):
             try:
                 image = Image.open(im_dir).convert("RGB")
@@ -190,8 +189,6 @@ def augment_men_text(data_dir,output_dir,model_dir):
     PROMPT = """Please make a brief description in 1 sentence for the entity under the background of context. 
 
     ### Entity
-    The entity is a {category}.
-    Name: {mention_name}
     Context:{mention_context}
 
     \# Description (Describe the entity without limiting or referring to context.)
@@ -210,7 +207,7 @@ def augment_men_text(data_dir,output_dir,model_dir):
             llava = entity[i]['des_llava']
             continue
         except:
-            text = PROMPT.format(category=entity[i]['category'],mention_name=entity[i]['name'],mention_context=entity[i]['context'])
+            text = PROMPT.format(mention_context=entity[i]['context'])
             messages = [
                 {"role": "system", "content": system},
                 {"role": "user", "content": text},
@@ -348,11 +345,9 @@ def infer(model_id,ckpt_id,max_length,database_sum,mention_topK_dir,res_output_d
         mentions = json.load(f)
 
     PROMPT = """
-    You are an expert in knowledge graph, and matching at top k specifically. Your task is to create matches between mention and entity tables to select the best-matched entity to match the given mention. 
+    You are an expert in knowledge graph, and matching at top k specifically. Your task is to create matches between mention and entity tables to select the best-matched entities to match the given mention. 
     ###Mention
-    Name: {mention_name}
     Context: {mention_context}
-    Category: {mention_category}
     Description: {mention_des}
 
     ###Entity table
@@ -387,7 +382,7 @@ def infer(model_id,ckpt_id,max_length,database_sum,mention_topK_dir,res_output_d
             description = mentions[i]['des_llava']
         except:
             description = mentions[i]['des']
-        text = PROMPT.format(mention_name=mentions[i]['name'],mention_context=mentions[i]['context'],mention_category=mentions[i]['category'],mention_des=description,entity_0=entity_table[0],entity_1=entity_table[1],entity_2=entity_table[2],entity_3=entity_table[3],entity_4=entity_table[4])
+        text = PROMPT.format(mention_context=mentions[i]['context'],mention_des=description,entity_0=entity_table[0],entity_1=entity_table[1],entity_2=entity_table[2],entity_3=entity_table[3],entity_4=entity_table[4])
         # outputs = pipeline(text)
         # response = outputs[0]["generated_text"][len(text):]
         # pred.append(response)

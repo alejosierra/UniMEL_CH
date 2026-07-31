@@ -51,3 +51,38 @@ if __name__=='__main__':
 
         with open(mentions_output_dir, 'w', encoding='utf-8') as f:
             json.dump(new_mentions, f, ensure_ascii=False, indent=4)
+
+    depicted_entities_dir=args.orig_datset.depicted_entities_dir
+    ent_output_dir=args.ent.train_data_dir
+    Path(ent_output_dir).parent.mkdir(parents=True, exist_ok=True)
+
+    all_entities = {}
+    for qid, depicted_entity in tqdm(json.load(open(depicted_entities_dir, 'r', encoding='utf-8')).items(), desc="Processing depicted entities"):
+        """
+            "Q211568": {
+            "qid": "Q211568",
+            "label": "fleur-de-lis",
+            "description": "stylized iris flower used as a heraldic symbol",
+            "types": {
+                "Q3744866": "mobile charge"
+            },
+            "images": [
+                "Fleur%20de%20lys%20%28or%29.svg"
+            ],
+            "full_text": "fleur-de-lis. stylized iris flower used as a heraldic symbol. mobile charge"
+        },
+
+        to 
+
+        {
+        "Q1": "Albert Einstein was a physicist known for the theory of relativity.",
+        "Q2": "Paris is the capital city of France."
+        }
+        """
+        
+        new_depicted_entity = {
+            qid: depicted_entity.get("full_text", "")
+        }
+        all_entities.update(new_depicted_entity)
+    with open(Path(ent_output_dir), 'w', encoding='utf-8') as f:
+        json.dump(all_entities, f, ensure_ascii=False, indent=4)
