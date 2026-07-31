@@ -1,0 +1,114 @@
+flowchart TD
+    subgraph Entry[main.py]
+        M[main]
+    end
+
+    subgraph Functions[Dataset functions]
+        A[augment_ent]
+        B[augment_men_img]
+        C[augment_men_text]
+        D[run_emb]
+        E[runtopK]
+        F[infer]
+    end
+
+    subgraph Files[Input / output files]
+        E1[entity2brief_train.json]
+        E2[entity2sum_train.json]
+        E3[entity2brief_valid.json]
+        E4[entity2sum_valid.json]
+        E5[entity2brief_test.json]
+        E6[entity2sum_test.json]
+
+        M1[train_w_10cands_pos_source.json]
+        M2[train_w_10cands_pos_source_des_llava.json]
+        M3[valid_w_10cands_pos_source.json]
+        M4[valid_w_10cands_pos_source_des_llava.json]
+        M5[test_w_10cands_pos_source.json]
+        M6[test_w_10cands_pos_source_des_llava.json]
+
+        M7[train_w_10cands_pos_source_des_llava_llama.json]
+        M8[valid_w_10cands_pos_source_des_llava_llama.json]
+        M9[test_w_10cands_pos_source_des_llava_llama.json]
+
+        IMG1[train_image/train_*.jpg]
+        IMG2[valid_image/valid_*.jpg]
+        IMG3[test_image/test_*.jpg]
+
+        EMB1[embedding_SFR_train.json]
+        EMB2[embedding_SFR_valid.json]
+        EMB3[embedding_SFR_test.json]
+
+        TOP1[train_w_10cands_pos_source_des_llava_llama_topK.json]
+        TOP2[valid_w_10cands_pos_source_des_llava_llama_topK.json]
+        TOP3[test_w_10cands_pos_source_des_llava_llama_topK.json]
+
+        RES1[res_train_top5_SFR.json]
+        RES2[res_valid_top5_SFR.json]
+        RES3[res_test_top5_SFR.json]
+    end
+
+    M -->|calls| A
+    M -->|calls| B
+    M -->|calls| C
+    M -->|calls| D
+    M -->|calls| E
+    M -->|calls| F
+
+    E1 -->|input| A
+    E3 -->|input| A
+    E5 -->|input| A
+    A -->|output| E2
+    A -->|output| E4
+    A -->|output| E6
+
+    M1 -->|input| B
+    M3 -->|input| B
+    M5 -->|input| B
+    IMG1 -->|input| B
+    IMG2 -->|input| B
+    IMG3 -->|input| B
+    B -->|output| M2
+    B -->|output| M4
+    B -->|output| M6
+
+    M2 -->|input| C
+    M4 -->|input| C
+    M6 -->|input| C
+    C -->|output| M7
+    C -->|output| M8
+    C -->|output| M9
+
+    E2 -->|input| D
+    E4 -->|input| D
+    E6 -->|input| D
+    D -->|output| EMB1
+    D -->|output| EMB2
+    D -->|output| EMB3
+
+    EMB1 -->|input| E
+    E2 -->|input| E
+    M7 -->|input| E
+    E -->|output| TOP1
+
+    EMB2 -->|input| E
+    E4 -->|input| E
+    M8 -->|input| E
+    E -->|output| TOP2
+
+    EMB3 -->|input| E
+    E6 -->|input| E
+    M9 -->|input| E
+    E -->|output| TOP3
+
+    E2 -->|input| F
+    TOP1 -->|input| F
+    F -->|output| RES1
+
+    E4 -->|input| F
+    TOP2 -->|input| F
+    F -->|output| RES2
+
+    E6 -->|input| F
+    TOP3 -->|input| F
+    F -->|output| RES3
