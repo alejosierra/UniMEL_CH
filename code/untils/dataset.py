@@ -12,6 +12,7 @@ from transformers import LlavaNextProcessor, LlavaNextForConditionalGeneration, 
 from modelscope import Model
 from swift.tuners import Swift
 
+os.environ['USE_HF']='True'
 
 
 def last_token_pool(last_hidden_states: Tensor,
