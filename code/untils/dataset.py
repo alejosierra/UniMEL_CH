@@ -98,7 +98,7 @@ def augment_ent(data_dir,output_dir,model_dir):
             output = outputs[0]["generated_text"][len(prompt):]
             sum = output
             sum = sum.split(":")[-1]
-            print(sum)
+            #print(sum)
             dict['sum'] = sum.replace('\n','')
             ent.append(dict)
         except:
@@ -235,7 +235,7 @@ def augment_men_text(data_dir,output_dir,model_dir):
                 output = outputs[0]["generated_text"][len(prompt):]
                 des = output
                 entity[i]['des'] = des.replace('\n','')
-                print(des)
+                #print(des)
             except:
                 print("error!"+str(i))
         ent.append(entity)
