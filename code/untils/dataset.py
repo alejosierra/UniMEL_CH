@@ -64,11 +64,11 @@ def augment_ent(data_dir,output_dir,model_dir):
                 all_data_name.append(da['ids'])
     writes=0
     for i in tqdm(range(len(entity_name)), desc="Generating summaries for entities"):
-        all_data_name = []
-        if len(ent)>0:
-            for da in ent:
-                if da['ids'] not in all_data_name:
-                    all_data_name.append(da['ids'])
+        # all_data_name = []
+        # if len(ent)>0:
+        #     for da in ent:
+        #         if da['ids'] not in all_data_name:
+        #             all_data_name.append(da['ids'])
         if data_name[i] in all_data_name:
             continue
         writes+=1
