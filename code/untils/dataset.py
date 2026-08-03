@@ -57,7 +57,13 @@ def augment_ent(data_dir,output_dir,model_dir):
     except:
         print("重新创建文件")
 
-    for i in tqdm(range(len(entity_name))):
+    all_data_name = []
+    if len(ent)>0:
+        for da in ent:
+            if da['ids'] not in all_data_name:
+                all_data_name.append(da['ids'])
+    writes=0
+    for i in tqdm(range(len(entity_name)), desc="Generating summaries for entities"):
         all_data_name = []
         if len(ent)>0:
             for da in ent:
@@ -65,7 +71,8 @@ def augment_ent(data_dir,output_dir,model_dir):
                     all_data_name.append(da['ids'])
         if data_name[i] in all_data_name:
             continue
-        if i%100==0:
+        writes+=1
+        if writes%100==0:
             with open(output_dir,"w") as f:
                 json.dump(ent,f)
         dict = {}
@@ -120,7 +127,7 @@ def run_emb(model_dir,data_dir,embed_dir,max_length):
         data = json.load(f)
     ents = data
     embeds = []
-    for j,ent in enumerate(tqdm(ents)):
+    for j,ent in enumerate(tqdm(ents), desc="Generating embeddings for entities"):
         embed = {}
         embed['ids'] = ent['ids']
         text = ent['name']+":"+ent['sum']
@@ -154,7 +161,7 @@ def augment_men_img(mentions_dir,save_dir,model_id,image_dir):
     Introduce the image. Answer follow the format: "The image refers to..."
     """
 
-    for i in tqdm(range(len(mentions))):
+    for i in tqdm(range(len(mentions)), desc="Generating descriptions for mentions with images"):
         prompt = f"[INST] <image>\n{PROMPT.format(mention_context=mentions[i]['context'])} [/INST]"
         im_dir = image_dir + "/" + mentions[i]['image']
         if os.path.exists(im_dir):
@@ -203,7 +210,7 @@ def augment_men_text(data_dir,output_dir,model_dir):
     except:
         print("重新创建文件")
 
-    for i in tqdm(range(len(entity))):
+    for i in tqdm(range(len(entity)), desc="Generating descriptions for entities"):
         try:
             llava = entity[i]['des_llava']
             continue

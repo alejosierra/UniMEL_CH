@@ -17,18 +17,19 @@ ent:
 
 mention:
   # iamge
-  model_dir_img: "Llava-v1.6-mistral-7b-hf"
+  # model_dir_img: "Llava-v1.6-mistral-7b-hf"
+  model_dir_img: "llava-hf/llava-v1.6-mistral-7b-hf"
   train_mentions_dir: "dataset/wikimusa/candidates/train_mentions.json"
   train_save_dir: "dataset/wikimusa/candidates/train_mentions_des_llava.json"
   val_mentions_dir: "dataset/wikimusa/candidates/val_mentions.json"
   val_save_dir: "dataset/wikimusa/candidates/val_mentions_des_llava.json"
   test_mentions_dir: "dataset/wikimusa/candidates/test_mentions.json"
   test_save_dir: "dataset/wikimusa/candidates/test_mentions_des_llava.json"
-  train_kb_img_folder: "dataset/wikimusa/mention_image/train_image/train_"
-  val_kb_img_folder: "dataset/wikimusa/mention_image/val_image/val_"
-  test_kb_img_folder: "dataset/wikimusa/mention_image/test_image/test_"
+  train_kb_img_folder: "../artwork-search-engine/data/raw/images"
+  val_kb_img_folder: "../artwork-search-engine/data/raw/images"
+  test_kb_img_folder: "../artwork-search-engine/data/raw/images"
 
-  model_dir: "meta-llama/Meta-Llama-3-8B-Instruct"
+  model_dir_text: "meta-llama/Meta-Llama-3-8B-Instruct"
   #model_dir_text: "../.cache/huggingface/hub/models--meta-llama--Meta-Llama-3-8B-Instruct/snapshots/8afb486c1db24fe5011ec46dfbe5b5dccdb575c2"
   train_data_dir: "dataset/wikimusa/candidates/train_mentions_des_llava.json"
   train_output_dir: "dataset/wikimusa/candidates/train_mentions_des_llava_llama.json"

@@ -10,8 +10,8 @@ readme = "README.md"
 requires-python = "==3.9.*"
 dependencies = [
     "torch==2.2.1",
-    "transformers==4.39.1",
-    "ms-swift==2.2.0",
+    "transformers==4.43.*",
+    "ms-swift==2.2.*",
     "omegaconf==2.2.3",
     "einops>=0.8.2",
     "modelscope>=1.31.0",
@@ -20,3 +20,4 @@ dependencies = [
 
 [tool.uv]
 package = false
+
