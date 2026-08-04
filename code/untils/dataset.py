@@ -161,22 +161,33 @@ def augment_men_img(mentions_dir,save_dir,model_id,image_dir):
     Introduce the image. Answer follow the format: "The image refers to..."
     """
 
+    current_descriptions_dict={}
+    with open(save_dir,"r") as f:
+        current_descriptions = json.load(f)
+        for o in tqdm(current_descriptions, desc="Loading existing descriptions"):
+            current_descriptions_dict[o['ids']]=o['des_llava']
+
     for i in tqdm(range(len(mentions)), desc="Generating descriptions for mentions with images"):
-        prompt = f"[INST] <image>\n{PROMPT.format(mention_context=mentions[i]['context'])} [/INST]"
-        im_dir = image_dir + "/" + mentions[i]['image']
-        if os.path.exists(im_dir):
-            try:
-                image = Image.open(im_dir).convert("RGB")
-                inputs = processor(prompt, image, return_tensors="pt").to("cuda")
-            except:
-                print("error:"+im_dir)
-                continue
+        id_mention=mentions[i]['ids']
+        cur_desc=current_descriptions_dict.get(id_mention, None)
+        if cur_desc:
+            mentions[i]['des_llava'] = cur_desc
         else:
-            continue
-        output = model.generate(**inputs, max_new_tokens=100).to("cuda")
-        
-        resp = processor.decode(output[0], skip_special_tokens=True)
-        mentions[i]['des_llava'] = resp
+            prompt = f"[INST] <image>\n{PROMPT.format(mention_context=mentions[i]['context'])} [/INST]"
+            im_dir = image_dir + "/" + mentions[i]['image']
+            if os.path.exists(im_dir):
+                try:
+                    image = Image.open(im_dir).convert("RGB")
+                    inputs = processor(prompt, image, return_tensors="pt").to("cuda")
+                except:
+                    print("error:"+im_dir)
+                    continue
+            else:
+                continue
+            output = model.generate(**inputs, max_new_tokens=100).to("cuda")
+            
+            resp = processor.decode(output[0], skip_special_tokens=True)
+            mentions[i]['des_llava'] = resp
     with open(save_dir,"w") as f:
         json.dump(mentions,f)
 
@@ -210,7 +221,7 @@ def augment_men_text(data_dir,output_dir,model_dir):
     except:
         print("重新创建文件")
 
-    for i in tqdm(range(len(entity)), desc="Generating descriptions for entities"):
+    for i in tqdm(range(len(entity)), desc="Generating descriptions for entities from text"):
         try:
             llava = entity[i]['des_llava']
             continue

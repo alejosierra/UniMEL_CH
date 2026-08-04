@@ -33,7 +33,7 @@ mention:
   
 embed:
   max_length: 4096
-  emb_model_dir: "SFR-Embedding-Mistral"
+  emb_model_dir: "Salesforce/SFR-Embedding-Mistral"
   train_data_dir: "dataset/wikidiverse/entities/entity2sum_train.json"
   train_embed_dir: "dataset/wikidiverse/entities/embedding_SFR_train.json"
   val_data_dir: "dataset/wikidiverse/entities/entity2sum_valid.json"
@@ -45,7 +45,7 @@ embed:
 top:
   K: 5
   max_length: 4096
-  model_dir: "SFR-Embedding-Mistral"
+  model_dir: "Salesforce/SFR-Embedding-Mistral"
   train_database_emb: "dataset/wikidiverse/entities/embedding_SFR_train.json"
   train_database_sum: "dataset/wikidiverse/entities/entity2sum_train.json"
   train_mention_dir: "dataset/wikidiverse/candidates/train_w_10cands_pos_source_des_llava_llama.json"
