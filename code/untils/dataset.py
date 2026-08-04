@@ -126,8 +126,22 @@ def run_emb(model_dir,data_dir,embed_dir,max_length):
     with open(data_dir,"r")as f:
         data = json.load(f)
     ents = data
+    
     embeds = []
+    existing_ids = set()
+    try:
+        with open(embed_dir, "r") as f:
+            existing_embeds = json.load(f)
+        embeds = existing_embeds
+        for item in existing_embeds:
+            if 'ids' in item:
+                existing_ids.add(item['ids'])
+    except:
+        pass
+
     for j,ent in enumerate(tqdm(ents, desc="Generating embeddings for entities")):
+        if ent['ids'] in existing_ids:
+            continue
         embed = {}
         embed['ids'] = ent['ids']
         text = ent['ids']+":"+ent['sum']
@@ -135,7 +149,7 @@ def run_emb(model_dir,data_dir,embed_dir,max_length):
         input_texts = text
         batch_dict = tokenizer(input_texts, max_length=max_length, padding=True, truncation=True, return_tensors="pt").to("cuda")
         outputs = model(**batch_dict)
-        em = last_token_pool(outputs.last_hidden_state, batch_dict['attention_mask'])[0]
+        em = last_token_pool(outputs.last_hidden_state, batch_dict['attention_mask'])[0] # shape: (hidden_size,)
         embed['emb'] = em.tolist()
         embeds.append(embed)
     with open(embed_dir,"w") as f:
