@@ -26,9 +26,9 @@ if __name__=='__main__':
     # train
     run_emb(args.embed.emb_model_dir,args.embed.train_data_dir,args.embed.train_embed_dir,args.embed.max_length)
     # valid
-    run_emb(args.embed.emb_model_dir,args.embed.val_data_dir,args.embed.val_embed_dir,args.embed.max_length)
+    #run_emb(args.embed.emb_model_dir,args.embed.val_data_dir,args.embed.val_embed_dir,args.embed.max_length)
     # test
-    run_emb(args.embed.emb_model_dir,args.embed.test_data_dir,args.embed.test_embed_dir,args.embed.max_length)
+    #run_emb(args.embed.emb_model_dir,args.embed.test_data_dir,args.embed.test_embed_dir,args.embed.max_length)
 
     # train
     runtopK(args.top.K,args.top.model_dir,args.top.train_database_emb,args.top.train_database_sum,args.top.train_mention_dir,args.top.train_mention_topK_dir,args.top.max_length)
