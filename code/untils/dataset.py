@@ -127,10 +127,10 @@ def run_emb(model_dir,data_dir,embed_dir,max_length):
         data = json.load(f)
     ents = data
     embeds = []
-    for j,ent in enumerate(tqdm(ents), desc="Generating embeddings for entities"):
+    for j,ent in enumerate(tqdm(ents, desc="Generating embeddings for entities")):
         embed = {}
         embed['ids'] = ent['ids']
-        text = ent['name']+":"+ent['sum']
+        text = ent['ids']+":"+ent['sum']
         text = text.replace("\n", " ")
         input_texts = text
         batch_dict = tokenizer(input_texts, max_length=max_length, padding=True, truncation=True, return_tensors="pt").to("cuda")
@@ -165,7 +165,8 @@ def augment_men_img(mentions_dir,save_dir,model_id,image_dir):
     with open(save_dir,"r") as f:
         current_descriptions = json.load(f)
         for o in tqdm(current_descriptions, desc="Loading existing descriptions"):
-            current_descriptions_dict[o['ids']]=o['des_llava']
+            if 'des_llava' in o:
+                current_descriptions_dict[o['ids']]=o['des_llava']
 
     for i in tqdm(range(len(mentions)), desc="Generating descriptions for mentions with images"):
         id_mention=mentions[i]['ids']
