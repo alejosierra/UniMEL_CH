@@ -28,6 +28,7 @@ mention:
   train_kb_img_folder: "../artwork-search-engine/data/raw/images"
   val_kb_img_folder: "../artwork-search-engine/data/raw/images"
   test_kb_img_folder: "../artwork-search-engine/data/raw/images"
+  img_file_name_mapping: "../artwork-search-engine/data/raw/images/file_name_mapping.json"
 
   model_dir_text: "meta-llama/Meta-Llama-3-8B-Instruct"
   #model_dir_text: "../.cache/huggingface/hub/models--meta-llama--Meta-Llama-3-8B-Instruct/snapshots/8afb486c1db24fe5011ec46dfbe5b5dccdb575c2"
@@ -45,7 +46,7 @@ embed:
   train_embed_dir: "dataset/wikimusa/entities/embedding_SFR_train.json"
 
 top:
-  K: 5
+  K: 100
   max_length: 4096
   model_dir: "Salesforce/SFR-Embedding-Mistral"
   train_database_emb: "dataset/wikimusa/entities/embedding_SFR_train.json"
@@ -63,7 +64,7 @@ top:
 
 infer:
   max_length: 2048
-  model_dir: "meta-llama/Meta-Llama-3-8B-Instruct"
+  model_id: "meta-llama/Meta-Llama-3-8B-Instruct"
   #model_id: "../.cache/huggingface/hub/models--meta-llama--Meta-Llama-3-8B-Instruct/snapshots/8afb486c1db24fe5011ec46dfbe5b5dccdb575c2"
   train_database_sum: "dataset/wikimusa/entities/entity2sum_train.json"
   train_mention_topK_dir: "dataset/wikimusa/candidates/train_mentions_des_llava_llama_topK.json"

@@ -25,7 +25,7 @@ def last_token_pool(last_hidden_states: Tensor,
         batch_size = last_hidden_states.shape[0]
         return last_hidden_states[torch.arange(batch_size, device=last_hidden_states.device), sequence_lengths]
 
-def augment_ent(data_dir,output_dir,model_dir):
+def augment_ent(*, data_dir, output_dir, model_dir):
     data_dir = data_dir
     output_dir = output_dir
     with open(data_dir,"r") as f:
@@ -115,7 +115,7 @@ def augment_ent(data_dir,output_dir,model_dir):
         json.dump(ent,f)
 
 
-def run_emb(model_dir,data_dir,embed_dir,max_length):
+def run_emb(*, model_dir, data_dir, embed_dir, max_length):
     model_dir=model_dir
     tokenizer = AutoTokenizer.from_pretrained(model_dir)
     model = AutoModel.from_pretrained(model_dir)
@@ -155,12 +155,14 @@ def run_emb(model_dir,data_dir,embed_dir,max_length):
     with open(embed_dir,"w") as f:
         json.dump(embeds,f)
 
-def augment_men_img(mentions_dir,save_dir,model_id,image_dir):
+def augment_men_img(*, mentions_dir, save_dir, model_id, image_dir, img_file_name_mapping):
     mentions_dir = mentions_dir
     save_dir = save_dir
     with open(mentions_dir,"r") as f:
         mentions = json.load(f)
 
+    with open(img_file_name_mapping, "r") as f:
+        img_mapping = json.load(f) # mapping of image file names to shorter file names
 
     model_id = model_id
     processor = LlavaNextProcessor.from_pretrained(model_id)
@@ -189,7 +191,7 @@ def augment_men_img(mentions_dir,save_dir,model_id,image_dir):
             mentions[i]['des_llava'] = cur_desc
         else:
             prompt = f"[INST] <image>\n{PROMPT.format(mention_context=mentions[i]['context'])} [/INST]"
-            im_dir = image_dir + "/" + mentions[i]['image']
+            im_dir = image_dir + "/" + img_mapping.get(mentions[i]['image'], mentions[i]['image'])
             if os.path.exists(im_dir):
                 try:
                     image = Image.open(im_dir).convert("RGB")
@@ -206,7 +208,7 @@ def augment_men_img(mentions_dir,save_dir,model_id,image_dir):
     with open(save_dir,"w") as f:
         json.dump(mentions,f)
 
-def augment_men_text(data_dir,output_dir,model_dir):
+def augment_men_text(*, data_dir, output_dir, model_dir):
     data_dir = data_dir
     output_dir = output_dir
     with open(data_dir,"r") as f:
@@ -229,17 +231,17 @@ def augment_men_text(data_dir,output_dir,model_dir):
     """
 
     ent = []
-    try:
-        with open(output_dir,"r") as f:
-            now_data = json.load(f)
-        ent = now_data
-    except:
-        print("重新创建文件")
+    # try:
+    #     with open(output_dir,"r") as f:
+    #         now_data = json.load(f)
+    #     ent = now_data
+    # except:
+    #     print("重新创建文件")
 
-    for i in tqdm(range(len(entity)), desc="Generating descriptions for entities from text"):
+    for i in tqdm(range(len(entity)), desc="Generating descriptions for entities from text if llava description is not available"):
         try:
             llava = entity[i]['des_llava']
-            continue
+            # if llava is not empty, use it as the description
         except:
             text = PROMPT.format(mention_context=entity[i]['context'])
             messages = [
@@ -271,12 +273,12 @@ def augment_men_text(data_dir,output_dir,model_dir):
                 #print(des)
             except:
                 print("error!"+str(i))
-        ent.append(entity)
+        ent.append(entity[i])
     with open(output_dir,"w") as f:
         json.dump(ent,f)
 
 
-def runtopK(K,model_dir,database_emb,database_sum,mention_dir,mention_topK_dir,max_length):
+def runtopK(*, K, model_dir, database_emb, database_sum, mention_dir, mention_topK_dir, max_length):
     model_dir = model_dir
     tokenizer = AutoTokenizer.from_pretrained(model_dir)
     model = AutoModel.from_pretrained(model_dir)
@@ -287,8 +289,13 @@ def runtopK(K,model_dir,database_emb,database_sum,mention_dir,mention_topK_dir,m
         data = json.load(f)
     ents+=data
     di = {}
+    ent_ids = []
+    ent_embs = []
     for ent in ents:
         di[ent['ids']] = ent['emb']
+        ent_ids.append(ent['ids'])
+        ent_embs.append(ent['emb'])
+    ent_embs = torch.tensor(ent_embs).to("cuda") # shape: (num_entities, embedding_dim)
     ents2 = []
 
     database_sum = database_sum
@@ -296,62 +303,87 @@ def runtopK(K,model_dir,database_emb,database_sum,mention_dir,mention_topK_dir,m
         data = json.load(f)
     ents2+=data
 
+    already_computed = dict()
+    try:
+        with open(mention_topK_dir, "r") as f:
+            existing_mentions = json.load(f)
+        for mention in existing_mentions:
+            if 'new_cands' in mention:
+                already_computed[mention['ids']] = mention
+    except:
+        pass
+
     mention_dir = mention_dir
     with open(mention_dir,"r") as f:
         mentions = json.load(f)
 
     max_length=max_length
     K = K
-    for i in tqdm(range(len(mentions))):
-        name = mentions[i]['name']
-        context = mentions[i]['context']
-        text = context+ "\n" + name
-        # text = context + "\n"+ name
-        input_texts = text
-        batch_dict = tokenizer(input_texts, max_length=max_length, padding=True, truncation=True, return_tensors="pt").to("cuda")
-        outputs = model(**batch_dict)
-        mention_emb = last_token_pool(outputs.last_hidden_state, batch_dict['attention_mask'])[0].tolist()
-        mention_emb = torch.tensor(mention_emb)
-        cands_scores = []
-        for cand in mentions[i]['cands']:
-            entity_emb = di[cand]
-            entity_emb = torch.tensor(entity_emb)
-            score = torch.dot(mention_emb,entity_emb)
-            cands_scores.append(score)
-        cands_scores = torch.tensor(cands_scores)
-        mentions[i]['score'] = cands_scores.tolist()
-        _,idx = torch.topk(cands_scores,min(K,len(mentions[i]['cands'])))
-        idx = idx.tolist()
-        new_cands = []
-        for id in idx:
-            new_cands.append(mentions[i]['cands'][id])
-        mentions[i]['new_cands'] = new_cands
+    for i in tqdm(range(len(mentions)), desc=f"Calculating top K candidates for mentions in {mention_dir}"):
+        # name = mentions[i]['name']
+        # context = mentions[i]['context']
+        if mentions[i]['ids'] in already_computed:
+            mentions[i] = already_computed[mentions[i]['ids']]
+        else:
+            try:
+                description = mentions[i]['des_llava']
+            except:
+                # description = mentions[i]['des']
+                print(f"Warning: 'des_llava' not found for mention {mentions[i]}. Exiting.")
+                exit(1)
+            text = description
+            # text = context + "\n"+ name
+            input_texts = text
+            batch_dict = tokenizer(input_texts, max_length=max_length, padding=True, truncation=True, return_tensors="pt").to("cuda")
+            outputs = model(**batch_dict)
+            mention_emb = last_token_pool(outputs.last_hidden_state, batch_dict['attention_mask'])[0].tolist()
+            mention_emb = torch.tensor(mention_emb).to("cuda") # shape: (embedding_dim,)
+            # cands_scores = []
+            # for cand in mentions[i]['cands']:
+            #     entity_emb = di[cand]
+            #     entity_emb = torch.tensor(entity_emb)
+            #     score = torch.dot(mention_emb,entity_emb)
+            #     cands_scores.append(score)
+            ent_scores= torch.matmul(mention_emb.unsqueeze(0), ent_embs.T).squeeze(0)  # shape: (num_entities,)
+            #mentions[i]['score'] = cands_scores.tolist()
+            _,idx = torch.topk(ent_scores,min(K,len(ent_scores)))
+            idx = idx.tolist()
+            new_cands = []
+            new_cand_scores = []
+            for id in idx:
+                new_cands.append(ent_ids[id])
+                new_cand_scores.append(ent_scores[id].item())
+            mentions[i]['new_cands'] = new_cands
+            mentions[i]['score'] = new_cand_scores
 
+        if (i+1) % 100 == 0:
+            with open(mention_topK_dir,"w") as f:
+                json.dump(mentions,f)
     with open(mention_topK_dir,"w") as f:
         json.dump(mentions,f)
 
-    with open(mention_topK_dir,"r") as f:
-        mentions = json.load(f)
-    acc =0 
-    wrong_list = []
-    for i in tqdm(range(len(mentions))):
-        if mentions[i]['ids'] in mentions[i]['new_cands']:
-            acc+=1
-    print(acc/len(mentions))
+    # with open(mention_topK_dir,"r") as f:
+    #     mentions = json.load(f)
+    # acc =0 
+    # wrong_list = []
+    # for i in tqdm(range(len(mentions)), desc=f"Calculating accuracy for top K candidates in {mention_topK_dir}"):
+    #     if mentions[i]['ids'] in mentions[i]['new_cands']:
+    #         acc+=1
+    # print(acc/len(mentions))
 
 
 
-def infer(model_id,ckpt_id,max_length,database_sum,mention_topK_dir,res_output_dir):
+def infer(*, model_id, max_length, database_sum, mention_topK_dir, res_output_dir):
     device = "cuda"
     model_id = model_id
-    ckpt_id = ckpt_id
+    #ckpt_id = ckpt_id
 
     model = Model.from_pretrained(
         model_id,
         device_map="auto",
         max_length=max_length
     )
-    model = Swift.from_pretrained(model, ckpt_id, inference_mode=True, max_length=max_length)
+    model = Swift.from_pretrained(model, inference_mode=True, max_length=max_length)
     tokenizer = AutoTokenizer.from_pretrained(model_id)
 
 
@@ -399,7 +431,7 @@ def infer(model_id,ckpt_id,max_length,database_sum,mention_topK_dir,res_output_d
     pred = []
     truth = []
     bad_cases = []
-    for i in tqdm(range(len(mentions))):
+    for i in tqdm(range(len(mentions)), desc=f"Generating predictions for mentions in {mention_topK_dir}"):
         entity_table = ["","","","",""]
         cands = mentions[i]['new_cands']
         try:
