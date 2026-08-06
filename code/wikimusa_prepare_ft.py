@@ -1,3 +1,5 @@
+from collections import defaultdict
+
 from untils.functions import setup_parser
 import json
 from tqdm import tqdm
@@ -9,6 +11,25 @@ if __name__=='__main__':
     input_mentions_train = args.orig_datset.train_mentions_dir
     input_mentions_val = args.orig_datset.val_mentions_dir
     input_mentions_test = args.orig_datset.test_mentions_dir
+
+    input_topK_train = args.top.train_mention_topK_dir
+    input_topK_val = args.top.val_mention_topK_dir
+    input_topK_test = args.top.test_mention_topK_dir
+
+    prompt_candidates = defaultdict(dict)
+
+    prompt_k=args.finetune.K
+    rank_K = args.top.K
+
+    prompt_k = min(prompt_k,rank_K)
+
+    for split, input_topK in zip(['train', 'val', 'test'], [input_topK_train, input_topK_val, input_topK_test]):
+        with open(input_topK, 'r', encoding='utf-8') as f:
+            topK_mentions = json.load(f)
+            for mention in topK_mentions:
+                mention_id = mention.get("ids")
+                candidates = mention.get("new_cands", [])
+                prompt_candidates[split][mention_id] = candidates[:prompt_k]
 
     entity_sums=dict()
     entity_sum_file=args.ent.train_output_dir
@@ -46,11 +67,7 @@ if __name__=='__main__':
             Description: {mention_des}
         
             ###Entity table
-            0. {entity_0}
-            1. {entity_1}
-            2. {entity_2}
-            3. {entity_3}
-            4. {entity_4}
+            {entity_table}
         
             Just give the ids and do not give me any other information.
             The most matched ids are:
@@ -98,7 +115,16 @@ if __name__=='__main__':
             description = descs.get(id, context)
             gt_ids=mention.get("depicted_entities", [])
 
-            gt_sums = [entity_sums.get(gt_id, "") for gt_id in gt_ids]
+            top_K_candidates = prompt_candidates[split].get(id, [])
+
+            filtered_gt=[gt_id for gt_id in gt_ids if gt_id in top_K_candidates]
+            if not filtered_gt:
+                continue # Skip mentions that do not have any ground truth depicted entities in the top K candidates
+
+            cand_sums = [entity_sums.get(cand_id, "") for cand_id in top_K_candidates]
+            entity_table = "\n".join(
+                f"{idx}. {cand_sum}" for idx, cand_sum in enumerate(cand_sums)
+            )
             
             new_mention = {
                 "messages": [
@@ -111,16 +137,12 @@ if __name__=='__main__':
                         "content": PROMPT.format(
                             mention_context=context,
                             mention_des=description,
-                            entity_0=gt_sums[0] if len(gt_sums) > 0 else "",
-                            entity_1=gt_sums[1] if len(gt_sums) > 1 else "",
-                            entity_2=gt_sums[2] if len(gt_sums) > 2 else "",
-                            entity_3=gt_sums[3] if len(gt_sums) > 3 else "",
-                            entity_4=gt_sums[4] if len(gt_sums) > 4 else ""
+                            entity_table=entity_table
                         )
                     },
                     {
                         "role": "assistant",
-                        "content": ", ".join(gt_ids)
+                        "content": ", ".join(filtered_gt)
                     }
                 ]
             }

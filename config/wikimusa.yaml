@@ -63,6 +63,7 @@ top:
   test_mention_topK_dir: "dataset/wikimusa/candidates/test_mentions_des_llava_llama_topK.json"
 
 finetune:
+  K: 10
   finetuning_train_data_dir: "dataset/wikimusa/llm_finetune/train.jsonl"
   finetuning_val_data_dir: "dataset/wikimusa/llm_finetune/val.jsonl"
 
