@@ -12,6 +12,8 @@ from transformers import LlavaNextProcessor, LlavaNextForConditionalGeneration, 
 from modelscope import Model
 from swift.tuners import Swift
 
+from swift.llm import get_model_tokenizer, safe_snapshot_download
+
 os.environ['USE_HF']='True'
 
 
@@ -373,17 +375,22 @@ def runtopK(*, K, model_dir, database_emb, database_sum, mention_dir, mention_to
 
 
 
-def infer(*, model_id, max_length, database_sum, mention_topK_dir, res_output_dir):
+def infer(*, model_id, ckpt_id, max_length, database_sum, mention_topK_dir, res_output_dir):
     device = "cuda"
     model_id = model_id
-    #ckpt_id = ckpt_id
+    ckpt_id = ckpt_id
 
-    model = Model.from_pretrained(
-        model_id,
-        device_map="auto",
-        max_length=max_length
-    )
-    model = Swift.from_pretrained(model, inference_mode=True, max_length=max_length)
+    # model = AutoModel.from_pretrained(
+    #     model_id,
+    #     device_map="auto",
+    #     max_length=max_length
+    # )
+
+    checkpoint_lora = safe_snapshot_download(ckpt_id)
+
+    model, tokenizer = get_model_tokenizer(model_id)
+
+    model = Swift.from_pretrained(model, checkpoint_lora, inference_mode=True, max_length=max_length)
     tokenizer = AutoTokenizer.from_pretrained(model_id)
 
 
@@ -403,7 +410,7 @@ def infer(*, model_id, max_length, database_sum, mention_topK_dir, res_output_di
     di2 = {}
     for ent in ents2:
         ent_dict = {}
-        ent_dict['name'] = ent['name']
+        ent_dict['name'] = ent['ids']
         ent_dict['sum'] = ent['sum']
         di2[ent['ids']] = ent_dict
 
@@ -478,7 +485,7 @@ def infer(*, model_id, max_length, database_sum, mention_topK_dir, res_output_di
             pad_token_id=128001
         )
         response = outputs[0]["generated_text"][len(prompt):]
-        print(response)
+        #print(response)
         pred.append(response)
     res = []
     for i in range(len(pred)):

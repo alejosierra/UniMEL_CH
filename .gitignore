@@ -3,3 +3,5 @@ uv.lock
 code/untils/__pycache__/*
 run.sbatch
 logs/*
+dataset/wikimusa/*
+output_ft/*

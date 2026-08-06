@@ -62,10 +62,15 @@ top:
   test_mention_dir: "dataset/wikimusa/candidates/test_mentions_des_llava_llama.json"
   test_mention_topK_dir: "dataset/wikimusa/candidates/test_mentions_des_llava_llama_topK.json"
 
+finetune:
+  finetuning_train_data_dir: "dataset/wikimusa/llm_finetune/train.jsonl"
+  finetuning_val_data_dir: "dataset/wikimusa/llm_finetune/val.jsonl"
+
 infer:
   max_length: 2048
   model_id: "meta-llama/Meta-Llama-3-8B-Instruct"
   #model_id: "../.cache/huggingface/hub/models--meta-llama--Meta-Llama-3-8B-Instruct/snapshots/8afb486c1db24fe5011ec46dfbe5b5dccdb575c2"
+  ckpt_id: "output_ft/v4-20260805-180438/checkpoint-9500"
   train_database_sum: "dataset/wikimusa/entities/entity2sum_train.json"
   train_mention_topK_dir: "dataset/wikimusa/candidates/train_mentions_des_llava_llama_topK.json"
   train_res_topK_dir: "dataset/wikimusa/candidates/res_train_top5_SFR.json"
