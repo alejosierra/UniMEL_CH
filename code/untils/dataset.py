@@ -459,9 +459,9 @@ def infer(*, model_id, ckpt_id, max_length, database_sum, mention_topK_dir, res_
         # outputs = pipeline(text)
         # response = outputs[0]["generated_text"][len(text):]
         # pred.append(response)
-        truth.append(true)
-        bad_cases.append(text)
-    for text in tqdm(bad_cases):
+        #truth.append(true)
+        #bad_cases.append(text)
+    #for text in tqdm(bad_cases):
         messages = [
         {"role": "system", "content": 'you are a helpful assistant!'},
         {"role": "user", "content": text},]
@@ -486,37 +486,43 @@ def infer(*, model_id, ckpt_id, max_length, database_sum, mention_topK_dir, res_
         )
         response = outputs[0]["generated_text"][len(prompt):]
         #print(response)
-        pred.append(response)
-    res = []
-    for i in range(len(pred)):
-        res_dict = {}
-        res_dict['pred'] = pred[i]
-        res_dict['true'] = truth[i]
-        res_dict['bad_case'] = bad_cases[i]
-        res.append(res_dict)
+        res_object={}
+        res_object['ids'] = mentions[i]['ids']
+        res_object['pred'] = response
+        pred.append(res_object)
+
     with open(res_output_dir,"w") as f:
-        json.dump(res,f)
+        json.dump(pred,f)
+    # res = []
+    # for i in range(len(pred)):
+    #     res_dict = {}
+    #     res_dict['pred'] = pred[i]
+    #     res_dict['true'] = truth[i]
+    #     res_dict['bad_case'] = bad_cases[i]
+    #     res.append(res_dict)
+    # with open(res_output_dir,"w") as f:
+    #     json.dump(res,f)
 
-    with open(res_output_dir,"r") as f:
-        data = json.load(f)
-    acc=0
-    for idx,m in enumerate(data):
-        pred=-1
-        t = m['true']
-        prompt = m['bad_case']
-        p = m['pred'].split('is:\n\n')[-1]
-        try:
-            pred = int(re.findall(r'\d',p)[0])
-        except:
-            # print(m['pred'],'\n',p,'\n-----------\n')
-            pred=-1
-        # print(f'pred={pred}  true={t} raw_p={p}\n')
-        if pred==t and t != -1:
-            acc+=1
-        else:
-            print(f"id={idx} , pred={pred} , true={t}\n-----------\n")
-    print(acc,len(data),acc/len(data))
+    # with open(res_output_dir,"r") as f:
+    #     data = json.load(f)
+    # acc=0
+    # for idx,m in enumerate(data):
+    #     pred=-1
+    #     t = m['true']
+    #     prompt = m['bad_case']
+    #     p = m['pred'].split('is:\n\n')[-1]
+    #     try:
+    #         pred = int(re.findall(r'\d',p)[0])
+    #     except:
+    #         # print(m['pred'],'\n',p,'\n-----------\n')
+    #         pred=-1
+    #     # print(f'pred={pred}  true={t} raw_p={p}\n')
+    #     if pred==t and t != -1:
+    #         acc+=1
+    #     else:
+    #         print(f"id={idx} , pred={pred} , true={t}\n-----------\n")
+    # print(acc,len(data),acc/len(data))
 
-    acc_dict = {}
-    acc_dict['acc'] = acc/len(data)
+    # acc_dict = {}
+    # acc_dict['acc'] = acc/len(data)
 

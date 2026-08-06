@@ -5,3 +5,4 @@ run.sbatch
 logs/*
 dataset/wikimusa/*
 output_ft/*
+output_ft
