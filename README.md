@@ -10,6 +10,7 @@ Changes made to the original UniMEL codebase include:
   4. Find checkpoint for Stage 4 within `output_ft` (Manually check log files for best checkpoint)
   5. Adjust the `config/wikimusa.yaml` file to point to the best checkpoint found in step 4
   6. Run the final inference with `code/infer.py`
+  7. Compute the metrics with `code/eval.py`
 
 
 # UniMEL: A Unified Framework for Multimodal Entity Linking with Large Language Models
