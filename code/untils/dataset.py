@@ -493,36 +493,189 @@ def infer(*, model_id, ckpt_id, max_length, database_sum, mention_topK_dir, res_
 
     with open(res_output_dir,"w") as f:
         json.dump(pred,f)
-    # res = []
-    # for i in range(len(pred)):
-    #     res_dict = {}
-    #     res_dict['pred'] = pred[i]
-    #     res_dict['true'] = truth[i]
-    #     res_dict['bad_case'] = bad_cases[i]
-    #     res.append(res_dict)
-    # with open(res_output_dir,"w") as f:
-    #     json.dump(res,f)
 
-    # with open(res_output_dir,"r") as f:
-    #     data = json.load(f)
-    # acc=0
-    # for idx,m in enumerate(data):
-    #     pred=-1
-    #     t = m['true']
-    #     prompt = m['bad_case']
-    #     p = m['pred'].split('is:\n\n')[-1]
-    #     try:
-    #         pred = int(re.findall(r'\d',p)[0])
-    #     except:
-    #         # print(m['pred'],'\n',p,'\n-----------\n')
-    #         pred=-1
-    #     # print(f'pred={pred}  true={t} raw_p={p}\n')
-    #     if pred==t and t != -1:
-    #         acc+=1
-    #     else:
-    #         print(f"id={idx} , pred={pred} , true={t}\n-----------\n")
-    # print(acc,len(data),acc/len(data))
 
-    # acc_dict = {}
-    # acc_dict['acc'] = acc/len(data)
+def eval(*, inference_res, topk_file, mentions_file, save_reranked=None, ks=(1,5,20,50,100)):
+    """Evaluate re-ranked top-K using inference results.
 
+    Parameters
+    - inference_res: path to inference results file (list of {"ids","pred"})
+    - topk_file: path to the runtopK output (mentions with `new_cands`)
+    - mentions_file: original mentions file (contains ground-truth in `ids`)
+    - save_reranked: optional path to save re-ranked results (json)
+    - ks: tuple of recall cutoffs to compute
+
+    Behavior:
+    - Parse inference `pred` values. If `pred` contains Q-ids (Q\d+), use them as predicted entities.
+      Otherwise, extract integers and treat them as indices into the `new_cands` list (0-based).
+    - Place the inferred predictions on top in the inferred order, then append the remaining
+      candidates from the original `new_cands` preserving their order. Truncate to original K.
+    - If ground-truth entity is not found in the final ranking, treat its rank as 101.
+    - Returns a dict with recall@k, MRR and MAP.
+    """
+    # load files
+    with open(inference_res, 'r') as f:
+        inf = json.load(f)
+    with open(topk_file, 'r') as f:
+        topk_mentions = json.load(f)
+    with open(mentions_file, 'r') as f:
+        mentions_orig = json.load(f)
+
+    # build maps by mention id
+    topk_map = {m['ids']: m for m in topk_mentions}
+    inf_map = {r['ids']: r for r in inf}
+    # if mentions_orig contains additional info use that for ground truth ordering
+
+    ranks = []  # 1-based rank for each mention (101 if missing)
+    reranked_output = []
+
+    num_mentions = 0
+    # support mentions file being either a dict (id -> mention) or a list of mention dicts
+    if isinstance(mentions_orig, dict):
+        mention_items = list(mentions_orig.items())
+    else:
+        mention_items = [(m.get('ids'), m) for m in mentions_orig]
+
+    for mid, m in mention_items:
+        if mid is None:
+            continue
+        topk_entry = topk_map.get(mid)
+        if not topk_entry:
+            # no topk available, assume empty
+            topk_list = []
+        else:
+            topk_list = topk_entry.get('new_cands', [])
+        K = len(topk_list) if len(topk_list) > 0 else None
+        # determine ground-truth ids for this mention (use depicted_entities as in wikimusa_prepare_ft)
+        gt_ids = []
+        try:
+            gt_ids = m.get('depicted_entities', []) or []
+        except Exception:
+            gt_ids = []
+
+        # compute intersection between top-K and ground truth (skip mentions with no intersection)
+        filtered_gt = [g for g in gt_ids if g in topk_list]
+        if not filtered_gt:
+            # skip mentions without any ground truth inside the top-K candidates
+            continue
+
+        num_mentions += 1
+
+        # get inference prediction for this mention
+        pred_raw = ''
+        if mid in inf_map:
+            pred_raw = inf_map[mid].get('pred', '')
+
+        # parse predictions
+        preds = []
+        if isinstance(pred_raw, list):
+            preds = pred_raw
+        else:
+            s = str(pred_raw)
+            # first try to find Q-ids
+            qids = re.findall(r"Q\d+", s)
+            if qids:
+                preds = qids
+            else:
+                # find integers -> treat as indices (0-based) into topk_list
+                ints = re.findall(r"\d+", s)
+                if ints and topk_list:
+                    for it in ints:
+                        idx = int(it)
+                        if 0 <= idx < len(topk_list):
+                            preds.append(topk_list[idx])
+                else:
+                    # fallback: tokens that appear in topk_list
+                    tokens = re.split(r"[\s,;]+", s)
+                    for t in tokens:
+                        if t in topk_list:
+                            preds.append(t)
+
+        # deduplicate while preserving order
+        seen = set()
+        inferred_filtered = []
+        for p in preds:
+            if p in seen:
+                continue
+            seen.add(p)
+            inferred_filtered.append(p)
+
+        # Build new ranking: inferred_filtered first, then remaining from topk_list preserving order
+        new_rank = []
+        for p in inferred_filtered:
+            new_rank.append(p)
+        for c in topk_list:
+            if c not in seen:
+                new_rank.append(c)
+
+        # ensure length equals original K
+        if K is not None:
+            new_rank = new_rank[:K]
+
+        # compute rank(s) for the filtered ground truth set
+        found_positions = []
+        for g in filtered_gt:
+            try:
+                pos = new_rank.index(g) + 1
+                found_positions.append(pos)
+            except ValueError:
+                # if a filtered_gt was in topk_list it should be in new_rank, but handle defensively
+                continue
+
+        if found_positions:
+            r = min(found_positions)
+        else:
+            r = 101
+
+        # compute Average Precision for this query (multiple relevant possible)
+        num_rel = len(filtered_gt)
+        if num_rel > 0:
+            hit_count = 0
+            sum_precisions = 0.0
+            for idx, cand in enumerate(new_rank, start=1):
+                if cand in filtered_gt:
+                    hit_count += 1
+                    sum_precisions += hit_count / float(idx)
+            ap = sum_precisions / float(num_rel)
+        else:
+            ap = 0.0
+
+        ranks.append(r)
+        reranked_output.append({'ids': mid, 'reranked': new_rank, 'gt_rank': r, 'AP': ap})
+
+    # compute metrics
+    ranks_arr = ranks
+    n = len(ranks_arr)
+    results = {}
+    if n == 0:
+        # no mentions to evaluate
+        for k in ks:
+            results[f'recall@{k}'] = 0.0
+        results['MRR'] = 0.0
+        results['MAP'] = 0.0
+        print("No mentions with ground truth in top-K; nothing to evaluate")
+        return results
+
+    for k in ks:
+        recall = sum(1 for r in ranks_arr if r <= k) / n
+        results[f'recall@{k}'] = recall
+
+    # MRR: mean(1/rank)
+    mrr = sum(1.0 / float(r) for r in ranks_arr) / n
+    results['MRR'] = mrr
+
+    # MAP: mean of per-query Average Precision values
+    ap_sum = 0.0
+    for item in reranked_output:
+        ap_sum += item.get('AP', 0.0)
+    mapv = ap_sum / n
+    results['MAP'] = mapv
+
+    # optionally save reranked output
+    if save_reranked:
+        with open(save_reranked, 'w') as f:
+            json.dump(reranked_output, f)
+
+    # print concise results
+    print(json.dumps(results, indent=2))
+    return results
