@@ -1,3 +1,17 @@
+# Adaptation of UniMEL for the WikiMuSa experiments.
+
+Changes made to the original UniMEL codebase include:
+- Changed the dependency management from pip to uv.
+- Changed ms swift version from 2 to 3
+- Process split in multiple steps:
+  1. Prepare the dataset with `code/wikimusa_prepare.py`
+  2. Process the dataset (Stages 1-3 from UniMEL) with `code/main.py`
+  3. Fine-tune the LLM for Stage 4 with `ft_script.sh`
+  4. Find checkpoint for Stage 4 within `output_ft` (Manually check log files for best checkpoint)
+  5. Adjust the `config/wikimusa.yaml` file to point to the best checkpoint found in step 4
+  6. Run the final inference with `code/infer.py`
+
+
 # UniMEL: A Unified Framework for Multimodal Entity Linking with Large Language Models
 
 This repository is the official implementation for the paper titled "UniMEL: A Unified Framework for Multimodal Entity Linking with Large Language Models".

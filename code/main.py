@@ -36,11 +36,3 @@ if __name__=='__main__':
     runtopK(K=args.top.K, model_dir=args.top.model_dir, database_emb=args.top.val_database_emb, database_sum=args.top.val_database_sum, mention_dir=args.top.val_mention_dir, mention_topK_dir=args.top.val_mention_topK_dir, max_length=args.top.max_length)
     # test
     runtopK(K=args.top.K, model_dir=args.top.model_dir, database_emb=args.top.test_database_emb, database_sum=args.top.test_database_sum, mention_dir=args.top.test_mention_dir, mention_topK_dir=args.top.test_mention_topK_dir, max_length=args.top.max_length)
-
-    # # train
-    # infer(model_id=args.infer.model_id, max_length=args.infer.max_length, database_sum=args.infer.train_database_sum, mention_topK_dir=args.infer.train_mention_topK_dir, res_output_dir=args.infer.train_res_topK_dir)
-    # # valid
-    # infer(model_id=args.infer.model_id, max_length=args.infer.max_length, database_sum=args.infer.val_database_sum, mention_topK_dir=args.infer.val_mention_topK_dir, res_output_dir=args.infer.val_res_topK_dir)
-    # test
-    #infer(model_id=args.infer.model_id, max_length=args.infer.max_length, database_sum=args.infer.test_database_sum, mention_topK_dir=args.infer.test_mention_topK_dir, res_output_dir=args.infer.test_res_topK_dir)
-    infer(model_id=args.infer.model_id, max_length=args.infer.max_length, database_sum=args.infer.test_database_sum, mention_topK_dir=args.infer.test_mention_topK_dir, res_output_dir=args.infer.test_res_topK_dir)

@@ -123,7 +123,7 @@ if __name__=='__main__':
 
             cand_sums = [entity_sums.get(cand_id, "") for cand_id in top_K_candidates]
             entity_table = "\n".join(
-                f"{idx}. {cand_sum}" for idx, cand_sum in enumerate(cand_sums)
+                f"{idx+1}. {cand_sum}" for idx, cand_sum in enumerate(cand_sums)
             )
             
             new_mention = {
