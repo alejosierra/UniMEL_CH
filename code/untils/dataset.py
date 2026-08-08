@@ -495,7 +495,7 @@ def infer(*, model_id, ckpt_id, max_length, database_sum, mention_topK_dir, res_
         json.dump(pred,f)
 
 
-def eval(*, inference_res, topk_file, mentions_file, save_reranked=None, ks=(1,5,20,50,100)):
+def eval(*, inference_res, topk_file, mentions_file, save_reranked=None, ks=(1,10,50,100)):
     """Evaluate re-ranked top-K using inference results.
 
     Parameters
@@ -526,8 +526,10 @@ def eval(*, inference_res, topk_file, mentions_file, save_reranked=None, ks=(1,5
     inf_map = {r['ids']: r for r in inf}
     # if mentions_orig contains additional info use that for ground truth ordering
 
-    ranks = []  # 1-based rank for each mention (101 if missing)
+    ranks = []  # reranked: 1-based rank for each mention (101 if missing)
+    ranks_before = []  # baseline ranks on original top-K
     reranked_output = []
+    ap_before_list = []
 
     num_mentions = 0
     # support mentions file being either a dict (id -> mention) or a list of mention dicts
@@ -612,7 +614,37 @@ def eval(*, inference_res, topk_file, mentions_file, save_reranked=None, ks=(1,5
         if K is not None:
             new_rank = new_rank[:K]
 
-        # compute rank(s) for the filtered ground truth set
+        # compute baseline rank(s) on original top-K
+        found_positions_before = []
+        for g in filtered_gt:
+            try:
+                posb = topk_list.index(g) + 1
+                found_positions_before.append(posb)
+            except ValueError:
+                continue
+
+        if found_positions_before:
+            rb = min(found_positions_before)
+        else:
+            rb = 101
+
+        # compute Average Precision for baseline ranking
+        num_rel = len(filtered_gt)
+        if num_rel > 0:
+            hit_count_b = 0
+            sum_precisions_b = 0.0
+            for idxb, candb in enumerate(topk_list, start=1):
+                if candb in filtered_gt:
+                    hit_count_b += 1
+                    sum_precisions_b += hit_count_b / float(idxb)
+            ap_b = sum_precisions_b / float(num_rel)
+        else:
+            ap_b = 0.0
+
+        ranks_before.append(rb)
+        ap_before_list.append(ap_b)
+
+        # compute rank(s) for the filtered ground truth set (after reranking)
         found_positions = []
         for g in filtered_gt:
             try:
@@ -627,8 +659,7 @@ def eval(*, inference_res, topk_file, mentions_file, save_reranked=None, ks=(1,5
         else:
             r = 101
 
-        # compute Average Precision for this query (multiple relevant possible)
-        num_rel = len(filtered_gt)
+        # compute Average Precision for this query (after reranking)
         if num_rel > 0:
             hit_count = 0
             sum_precisions = 0.0
@@ -641,35 +672,41 @@ def eval(*, inference_res, topk_file, mentions_file, save_reranked=None, ks=(1,5
             ap = 0.0
 
         ranks.append(r)
-        reranked_output.append({'ids': mid, 'reranked': new_rank, 'gt_rank': r, 'AP': ap})
+        reranked_output.append({'ids': mid, 'reranked': new_rank, 'gt_rank': r, 'AP': ap, 'baseline_rank': rb, 'baseline_AP': ap_b})
 
-    # compute metrics
-    ranks_arr = ranks
-    n = len(ranks_arr)
+    # compute metrics for baseline and reranked
     results = {}
-    if n == 0:
-        # no mentions to evaluate
+    n_before = len(ranks_before)
+    n_after = len(ranks)
+    if n_after == 0:
         for k in ks:
-            results[f'recall@{k}'] = 0.0
-        results['MRR'] = 0.0
-        results['MAP'] = 0.0
+            results[f'recall_before@{k}'] = 0.0
+            results[f'recall_after@{k}'] = 0.0
+        results['MRR_before'] = 0.0
+        results['MRR_after'] = 0.0
+        results['MAP_before'] = 0.0
+        results['MAP_after'] = 0.0
         print("No mentions with ground truth in top-K; nothing to evaluate")
         return results
 
+    # recalls
     for k in ks:
-        recall = sum(1 for r in ranks_arr if r <= k) / n
-        results[f'recall@{k}'] = recall
+        recall_b = sum(1 for r in ranks_before if r <= k) / n_before if n_before > 0 else 0.0
+        recall_a = sum(1 for r in ranks if r <= k) / n_after if n_after > 0 else 0.0
+        results[f'recall_before@{k}'] = recall_b
+        results[f'recall_after@{k}'] = recall_a
 
-    # MRR: mean(1/rank)
-    mrr = sum(1.0 / float(r) for r in ranks_arr) / n
-    results['MRR'] = mrr
+    # MRRs
+    mrr_b = sum(1.0 / float(r) for r in ranks_before) / n_before if n_before > 0 else 0.0
+    mrr_a = sum(1.0 / float(r) for r in ranks) / n_after if n_after > 0 else 0.0
+    results['MRR_before'] = mrr_b
+    results['MRR_after'] = mrr_a
 
-    # MAP: mean of per-query Average Precision values
-    ap_sum = 0.0
-    for item in reranked_output:
-        ap_sum += item.get('AP', 0.0)
-    mapv = ap_sum / n
-    results['MAP'] = mapv
+    # MAPs
+    map_b = sum(ap_before_list) / n_before if n_before > 0 else 0.0
+    map_a = sum(item.get('AP', 0.0) for item in reranked_output) / n_after if n_after > 0 else 0.0
+    results['MAP_before'] = map_b
+    results['MAP_after'] = map_a
 
     # optionally save reranked output
     if save_reranked:
