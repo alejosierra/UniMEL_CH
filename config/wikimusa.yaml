@@ -1,6 +1,6 @@
 run_name: wikimusa
 seed: 42
-
+base_dataset_dir: "dataset/wikimusa/wikimusa_${seed}"
 
 orig_datset:
   depicted_entities_dir: "../artwork-search-engine/data/processed/dataset_1_1/final_annotations/depicted_entities.json"
@@ -12,19 +12,19 @@ orig_datset:
 ent:
   model_dir: "meta-llama/Meta-Llama-3-8B-Instruct"
   #model_dir: "../.cache/huggingface/hub/models--meta-llama--Meta-Llama-3-8B-Instruct/snapshots/8afb486c1db24fe5011ec46dfbe5b5dccdb575c2"
-  train_data_dir: "dataset/wikimusa/entities/entity2brief_train.json"
-  train_output_dir: "dataset/wikimusa/entities/entity2sum_train.json"
+  train_data_dir: "${base_dataset_dir}/entities/entity2brief_train.json"
+  train_output_dir: "${base_dataset_dir}/entities/entity2sum_train.json"
 
 mention:
   # iamge
   # model_dir_img: "Llava-v1.6-mistral-7b-hf"
   model_dir_img: "llava-hf/llava-v1.6-mistral-7b-hf"
-  train_mentions_dir: "dataset/wikimusa/candidates/train_mentions.json"
-  train_save_dir: "dataset/wikimusa/candidates/train_mentions_des_llava.json"
-  val_mentions_dir: "dataset/wikimusa/candidates/val_mentions.json"
-  val_save_dir: "dataset/wikimusa/candidates/val_mentions_des_llava.json"
-  test_mentions_dir: "dataset/wikimusa/candidates/test_mentions.json"
-  test_save_dir: "dataset/wikimusa/candidates/test_mentions_des_llava.json"
+  train_mentions_dir: "${base_dataset_dir}/candidates/train_mentions.json"
+  train_save_dir: "${base_dataset_dir}/candidates/train_mentions_des_llava.json"
+  val_mentions_dir: "${base_dataset_dir}/candidates/val_mentions.json"
+  val_save_dir: "${base_dataset_dir}/candidates/val_mentions_des_llava.json"
+  test_mentions_dir: "${base_dataset_dir}/candidates/test_mentions.json"
+  test_save_dir: "${base_dataset_dir}/candidates/test_mentions_des_llava.json"
   train_kb_img_folder: "../artwork-search-engine/data/raw/images"
   val_kb_img_folder: "../artwork-search-engine/data/raw/images"
   test_kb_img_folder: "../artwork-search-engine/data/raw/images"
@@ -32,53 +32,53 @@ mention:
 
   model_dir_text: "meta-llama/Meta-Llama-3-8B-Instruct"
   #model_dir_text: "../.cache/huggingface/hub/models--meta-llama--Meta-Llama-3-8B-Instruct/snapshots/8afb486c1db24fe5011ec46dfbe5b5dccdb575c2"
-  train_data_dir: "dataset/wikimusa/candidates/train_mentions_des_llava.json"
-  train_output_dir: "dataset/wikimusa/candidates/train_mentions_des_llava_llama.json"
-  val_data_dir: "dataset/wikimusa/candidates/val_mentions_des_llava.json"
-  val_output_dir: "dataset/wikimusa/candidates/val_mentions_des_llava_llama.json"
-  test_data_dir: "dataset/wikimusa/candidates/test_mentions_des_llava.json"
-  test_output_dir: "dataset/wikimusa/candidates/test_mentions_des_llava_llama.json"
+  train_data_dir: "${base_dataset_dir}/candidates/train_mentions_des_llava.json"
+  train_output_dir: "${base_dataset_dir}/candidates/train_mentions_des_llava_llama.json"
+  val_data_dir: "${base_dataset_dir}/candidates/val_mentions_des_llava.json"
+  val_output_dir: "${base_dataset_dir}/candidates/val_mentions_des_llava_llama.json"
+  test_data_dir: "${base_dataset_dir}/candidates/test_mentions_des_llava.json"
+  test_output_dir: "${base_dataset_dir}/candidates/test_mentions_des_llava_llama.json"
   
 embed:
   max_length: 4096
   emb_model_dir: "Salesforce/SFR-Embedding-Mistral"
-  train_data_dir: "dataset/wikimusa/entities/entity2sum_train.json"
-  train_embed_dir: "dataset/wikimusa/entities/embedding_SFR_train.json"
+  train_data_dir: "${base_dataset_dir}/entities/entity2sum_train.json"
+  train_embed_dir: "${base_dataset_dir}/entities/embedding_SFR_train.json"
 
 top:
   K: 100
   max_length: 4096
   model_dir: "Salesforce/SFR-Embedding-Mistral"
-  train_database_emb: "dataset/wikimusa/entities/embedding_SFR_train.json"
-  train_database_sum: "dataset/wikimusa/entities/entity2sum_train.json"
-  train_mention_dir: "dataset/wikimusa/candidates/train_mentions_des_llava_llama.json"
-  train_mention_topK_dir: "dataset/wikimusa/candidates/train_mentions_des_llava_llama_topK.json"
-  val_database_emb: "dataset/wikimusa/entities/embedding_SFR_train.json"
-  val_database_sum: "dataset/wikimusa/entities/entity2sum_train.json"
-  val_mention_dir: "dataset/wikimusa/candidates/val_mentions_des_llava_llama.json"
-  val_mention_topK_dir: "dataset/wikimusa/candidates/val_mentions_des_llava_llama_topK.json"
-  test_database_emb: "dataset/wikimusa/entities/embedding_SFR_train.json"
-  test_database_sum: "dataset/wikimusa/entities/entity2sum_train.json"
-  test_mention_dir: "dataset/wikimusa/candidates/test_mentions_des_llava_llama.json"
-  test_mention_topK_dir: "dataset/wikimusa/candidates/test_mentions_des_llava_llama_topK.json"
+  train_database_emb: "${base_dataset_dir}/entities/embedding_SFR_train.json"
+  train_database_sum: "${base_dataset_dir}/entities/entity2sum_train.json"
+  train_mention_dir: "${base_dataset_dir}/candidates/train_mentions_des_llava_llama.json"
+  train_mention_topK_dir: "${base_dataset_dir}/candidates/train_mentions_des_llava_llama_topK.json"
+  val_database_emb: "${base_dataset_dir}/entities/embedding_SFR_train.json"
+  val_database_sum: "${base_dataset_dir}/entities/entity2sum_train.json"
+  val_mention_dir: "${base_dataset_dir}/candidates/val_mentions_des_llava_llama.json"
+  val_mention_topK_dir: "${base_dataset_dir}/candidates/val_mentions_des_llava_llama_topK.json"
+  test_database_emb: "${base_dataset_dir}/entities/embedding_SFR_train.json"
+  test_database_sum: "${base_dataset_dir}/entities/entity2sum_train.json"
+  test_mention_dir: "${base_dataset_dir}/candidates/test_mentions_des_llava_llama.json"
+  test_mention_topK_dir: "${base_dataset_dir}/candidates/test_mentions_des_llava_llama_topK.json"
 
 finetune:
   K: 10
-  finetuning_train_data_dir: "dataset/wikimusa/llm_finetune/train.jsonl"
-  finetuning_val_data_dir: "dataset/wikimusa/llm_finetune/val.jsonl"
+  finetuning_train_data_dir: "${base_dataset_dir}/llm_finetune/train.jsonl"
+  finetuning_val_data_dir: "${base_dataset_dir}/llm_finetune/val.jsonl"
 
 infer:
   max_length: 2048
   model_id: "meta-llama/Meta-Llama-3-8B-Instruct"
   #model_id: "../.cache/huggingface/hub/models--meta-llama--Meta-Llama-3-8B-Instruct/snapshots/8afb486c1db24fe5011ec46dfbe5b5dccdb575c2"
-  ckpt_id: "output_ft/v5-20260807-014231/checkpoint-2500"
-  train_database_sum: "dataset/wikimusa/entities/entity2sum_train.json"
-  train_mention_topK_dir: "dataset/wikimusa/candidates/train_mentions_des_llava_llama_topK.json"
-  train_res_topK_dir: "dataset/wikimusa/candidates/res_train_top5_SFR.json"
-  val_database_sum: "dataset/wikimusa/entities/entity2sum_train.json"
-  val_mention_topK_dir: "dataset/wikimusa/candidates/val_mentions_des_llava_llama_topK.json"
-  val_res_topK_dir: "dataset/wikimusa/candidates/res_val_top5_SFR.json"
-  test_database_sum: "dataset/wikimusa/entities/entity2sum_train.json"
-  test_mention_topK_dir: "dataset/wikimusa/candidates/test_mentions_des_llava_llama_topK.json"
-  test_res_topK_dir: "dataset/wikimusa/candidates/res_test_top5_SFR.json"
+  ckpt_id: "output_ft/swift_ft/logs/seed_${seed}"
+  train_database_sum: "${base_dataset_dir}/entities/entity2sum_train.json"
+  train_mention_topK_dir: "${base_dataset_dir}/candidates/train_mentions_des_llava_llama_topK.json"
+  train_res_topK_dir: "${base_dataset_dir}/candidates/res_train_top5_SFR.json"
+  val_database_sum: "${base_dataset_dir}/entities/entity2sum_train.json"
+  val_mention_topK_dir: "${base_dataset_dir}/candidates/val_mentions_des_llava_llama_topK.json"
+  val_res_topK_dir: "${base_dataset_dir}/candidates/res_val_top5_SFR.json"
+  test_database_sum: "${base_dataset_dir}/entities/entity2sum_train.json"
+  test_mention_topK_dir: "${base_dataset_dir}/candidates/test_mentions_des_llava_llama_topK.json"
+  test_res_topK_dir: "${base_dataset_dir}/candidates/res_test_top5_SFR.json"
 

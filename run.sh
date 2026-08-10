@@ -1,2 +1,6 @@
-echo "Device is ${1}. Running on dataset ${2}";
-CUDA_VISIBLE_DEVICES=${1} uv run python -u ./code/main.py --config "./config/${2}.yaml"
+device="$1"
+dataset="$2"
+
+echo "Device is ${device}. Running on dataset ${dataset}";
+shift 2
+CUDA_VISIBLE_DEVICES=${device} uv run python -u ./code/main.py --config "./config/${dataset}.yaml" "$@"
