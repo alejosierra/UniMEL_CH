@@ -60,9 +60,6 @@ def augment_ent(*, data_dir, output_dir, model_dir, seed=SEED):
         device_map="auto",
     )
     
-    # Create a generator for reproducible sampling
-    generator = torch.Generator(device="cuda" if torch.cuda.is_available() else "cpu").manual_seed(seed)
-    
     system = 'you are a helpful assistant!'
     PROMPT = """Please generate a one-sentence summary for the given entity, including entity name and description.
     entity name:{entity_name}
@@ -116,8 +113,7 @@ def augment_ent(*, data_dir, output_dir, model_dir, seed=SEED):
                 do_sample=True,
                 temperature=0.6,
                 top_p=0.9,
-                pad_token_id=128001,
-                generator=generator  # Add generator for reproducibility
+                pad_token_id=128001
             )
             output = outputs[0]["generated_text"][len(prompt):]
             summary = output
@@ -214,9 +210,6 @@ def augment_men_img(*, mentions_dir, save_dir, model_id, image_dir, img_file_nam
     except:
         pass
 
-    # Create a generator for reproducible sampling
-    generator = torch.Generator(device="cuda" if torch.cuda.is_available() else "cpu").manual_seed(seed)
-
     for i in tqdm(range(len(mentions)), desc="Generating descriptions for mentions with images"):
         id_mention = mentions[i]['ids']
         cur_desc = current_descriptions_dict.get(id_mention, None)
@@ -234,7 +227,7 @@ def augment_men_img(*, mentions_dir, save_dir, model_id, image_dir, img_file_nam
                     continue
             else:
                 continue
-            output = model.generate(**inputs, max_new_tokens=100, generator=generator).to("cuda")
+            output = model.generate(**inputs, max_new_tokens=100).to("cuda")
             
             resp = processor.decode(output[0], skip_special_tokens=True)
             mentions[i]['des_llava'] = resp
@@ -260,9 +253,6 @@ def augment_men_text(*, data_dir, output_dir, model_dir, seed=SEED):
         model_kwargs={"torch_dtype": torch.bfloat16},
         device_map="auto",
     )
-    
-    # Create a generator for reproducible sampling
-    generator = torch.Generator(device="cuda" if torch.cuda.is_available() else "cpu").manual_seed(seed)
     
     system = 'you are a helpful assistant!'
     PROMPT = """Please make a brief description in 1 sentence for the entity under the background of context. 
@@ -308,8 +298,7 @@ def augment_men_text(*, data_dir, output_dir, model_dir, seed=SEED):
                     do_sample=True,
                     temperature=0.6,
                     top_p=0.9,
-                    pad_token_id=128001,
-                    generator=generator  # Add generator for reproducibility
+                    pad_token_id=128001
                 )
                 output = outputs[0]["generated_text"][len(prompt):]
                 des = output
@@ -451,9 +440,6 @@ def infer(*, model_id, ckpt_id, max_length, database_sum, mention_topK_dir, res_
         tokenizer=tokenizer
     )
     
-    # Create a generator for reproducible sampling
-    generator = torch.Generator(device="cuda" if torch.cuda.is_available() else "cpu").manual_seed(seed)
-    
     ents2 = []
     database = database_sum
     with open(database, "r") as f:
@@ -535,8 +521,7 @@ def infer(*, model_id, ckpt_id, max_length, database_sum, mention_topK_dir, res_
             do_sample=True,
             temperature=0.9,
             top_p=0.5,
-            pad_token_id=128001,
-            generator=generator  # Add generator for reproducibility
+            pad_token_id=128001
         )
         response = outputs[0]["generated_text"][len(prompt):]
         # print(response)
