@@ -10,7 +10,7 @@ if [ $# -gt 0 ]; then
 fi
 
 # Output file
-OUTPUT_FILE="results_combined_${config_file##*/}" >> "$OUTPUT_FILE"
+OUTPUT_FILE="results_combined_${config_file##*/}.json" >> "$OUTPUT_FILE"
 
 # Start with an empty array
 echo "[" > "$OUTPUT_FILE"
