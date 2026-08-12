@@ -12,7 +12,7 @@ fi
 dataset_path="dataset/wikimusa/wikimusa_${seed}/llm_finetune/train.jsonl"
 echo "Training dataset path: ${dataset_path}"
 
-uv run swift sft \
+swift sft \
     --model meta-llama/Meta-Llama-3-8B-Instruct \
     --train_type lora \
     --dataset "${dataset_path}" \
