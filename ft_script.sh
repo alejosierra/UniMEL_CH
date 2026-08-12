@@ -12,6 +12,8 @@ fi
 dataset_path="dataset/wikimusa/wikimusa_${seed}/llm_finetune/train.jsonl"
 echo "Training dataset path: ${dataset_path}"
 
+python code/wikimusa_prepare_ft.py --config ./config/wikimusa.yaml --seed "${seed}"
+
 swift sft \
     --model meta-llama/Meta-Llama-3-8B-Instruct \
     --train_type lora \
