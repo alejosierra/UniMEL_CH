@@ -1,11 +1,18 @@
 #!/bin/bash
 
-seed="$1"
+set -euo pipefail
 
-swift sft \
+seed="${1:-}"
+
+if [[ -z "${seed}" ]]; then
+    echo "Usage: bash ft_script.sh <seed>"
+    exit 1
+fi
+
+uv run swift sft \
     --model meta-llama/Meta-Llama-3-8B-Instruct \
     --train_type lora \
-    --dataset 'dataset/wikimusa_${seed}/llm_finetune/train.jsonl' \
+    --dataset "dataset/wikimusa/wikimusa_${seed}/llm_finetune/train.jsonl" \
     --num_train_epochs 1 \
     --per_device_train_batch_size 1 \
     --per_device_eval_batch_size 1 \
