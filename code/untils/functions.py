@@ -44,6 +44,9 @@ def refine_checkpoint_path(checkpoint_path:Path):
 
     From that json, it must get the value of the key "best_model_checkpoint" and return it as an absolute path.
     """
+
+    if isinstance(checkpoint_path, str):
+        checkpoint_path = Path(checkpoint_path)
     
     if (checkpoint_path / "adapter_model.safetensors").exists() or (checkpoint_path / "adapter_model.bin").exists():
         return checkpoint_path

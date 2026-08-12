@@ -11,6 +11,7 @@ ImageFile.LOAD_TRUNCATED_IMAGES = True
 from transformers import LlavaNextProcessor, LlavaNextForConditionalGeneration, TextIteratorStreamer, AutoTokenizer, AutoModel
 from modelscope import Model
 from swift.tuners import Swift
+from untils.functions import refine_checkpoint_path
 
 from swift.llm import get_model_tokenizer, safe_snapshot_download
 
@@ -420,11 +421,17 @@ def infer(*, model_id, ckpt_id, max_length, database_sum, mention_topK_dir, res_
     model_id = model_id
     ckpt_id = ckpt_id
 
+    print(f"Refining checkpoint path for {ckpt_id}...")
+    ckpt_id = refine_checkpoint_path(ckpt_id)
+    print(f"Using refined checkpoint path: {ckpt_id}")
+
     # model = AutoModel.from_pretrained(
     #     model_id,
     #     device_map="auto",
     #     max_length=max_length
     # )
+
+    return
 
     checkpoint_lora = safe_snapshot_download(ckpt_id)
 
