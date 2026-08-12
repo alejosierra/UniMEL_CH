@@ -422,16 +422,8 @@ def infer(*, model_id, ckpt_id, max_length, database_sum, mention_topK_dir, res_
     ckpt_id = ckpt_id
 
     print(f"Refining checkpoint path for {ckpt_id}...")
-    ckpt_id = refine_checkpoint_path(ckpt_id)
+    ckpt_id = refine_checkpoint_path(ckpt_id).as_posix()
     print(f"Using refined checkpoint path: {ckpt_id}")
-
-    # model = AutoModel.from_pretrained(
-    #     model_id,
-    #     device_map="auto",
-    #     max_length=max_length
-    # )
-
-    return
 
     checkpoint_lora = safe_snapshot_download(ckpt_id)
 
