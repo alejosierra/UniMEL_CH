@@ -9,10 +9,13 @@ if [[ -z "${seed}" ]]; then
     exit 1
 fi
 
+dataset_path="dataset/wikimusa/wikimusa_${seed}/llm_finetune/train.jsonl"
+echo "Training dataset path: ${dataset_path}"
+
 uv run swift sft \
     --model meta-llama/Meta-Llama-3-8B-Instruct \
     --train_type lora \
-    --dataset "dataset/wikimusa/wikimusa_${seed}/llm_finetune/train.jsonl" \
+    --dataset "${dataset_path}" \
     --num_train_epochs 1 \
     --per_device_train_batch_size 1 \
     --per_device_eval_batch_size 1 \
