@@ -367,7 +367,7 @@ def runtopK(*, K, model_dir, database_emb, database_sum, mention_dir, mention_to
             mentions[i] = already_computed[mentions[i]['ids']]
         else:
             try:
-                description = mentions[i]['des_llava']
+                description = mentions[i].get('des_llava', mentions[i]['des']) # it should use 'des_llava' if available, otherwise fallback to 'des'. If none of them exist, it will raise an exception and exit.
             except:
                 # description = mentions[i]['des']
                 print(f"Warning: 'des_llava' not found for mention {mentions[i]}. Exiting.")
