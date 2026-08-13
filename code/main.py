@@ -1,3 +1,5 @@
+from omegaconf import OmegaConf
+
 from untils.dataset import augment_ent, augment_men_img, augment_men_text, run_emb, runtopK, infer
 from untils.functions import setup_parser
 if __name__=='__main__':
@@ -10,11 +12,15 @@ if __name__=='__main__':
     #augment_ent(data_dir=args.ent.test_data_dir, output_dir=args.ent.test_output_dir, model_dir=args.ent.model_dir)
 
     # train
-    augment_men_img(mentions_dir=args.mention.train_mentions_dir, save_dir=args.mention.train_save_dir, model_id=args.mention.model_dir_img, image_dir=args.mention.train_kb_img_folder, img_file_name_mapping=args.mention.img_file_name_mapping, seed=args.seed)
+
+    #check if the img_file_name_mapping key exists in args.mention 
+    img_file_name_mapping=OmegaConf.select(args, 'mention.img_file_name_mapping', default=None)
+
+    augment_men_img(mentions_dir=args.mention.train_mentions_dir, save_dir=args.mention.train_save_dir, model_id=args.mention.model_dir_img, image_dir=args.mention.train_kb_img_folder, img_file_name_mapping=img_file_name_mapping, seed=args.seed)
     # valid
-    augment_men_img(mentions_dir=args.mention.val_mentions_dir, save_dir=args.mention.val_save_dir, model_id=args.mention.model_dir_img, image_dir=args.mention.val_kb_img_folder, img_file_name_mapping=args.mention.img_file_name_mapping, seed=args.seed)
+    augment_men_img(mentions_dir=args.mention.val_mentions_dir, save_dir=args.mention.val_save_dir, model_id=args.mention.model_dir_img, image_dir=args.mention.val_kb_img_folder, img_file_name_mapping=img_file_name_mapping, seed=args.seed)
     # test
-    augment_men_img(mentions_dir=args.mention.test_mentions_dir, save_dir=args.mention.test_save_dir, model_id=args.mention.model_dir_img, image_dir=args.mention.test_kb_img_folder, img_file_name_mapping=args.mention.img_file_name_mapping, seed=args.seed)
+    augment_men_img(mentions_dir=args.mention.test_mentions_dir, save_dir=args.mention.test_save_dir, model_id=args.mention.model_dir_img, image_dir=args.mention.test_kb_img_folder, img_file_name_mapping=img_file_name_mapping, seed=args.seed)
 
     # train
     augment_men_text(data_dir=args.mention.train_data_dir, output_dir=args.mention.train_output_dir, model_dir=args.mention.model_dir_text, seed=args.seed)

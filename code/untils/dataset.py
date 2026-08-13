@@ -186,8 +186,10 @@ def augment_men_img(*, mentions_dir, save_dir, model_id, image_dir, img_file_nam
     with open(mentions_dir, "r") as f:
         mentions = json.load(f)
 
-    with open(img_file_name_mapping, "r") as f:
-        img_mapping = json.load(f)  # mapping of image file names to shorter file names
+    img_mapping = dict()
+    if img_file_name_mapping is not None:
+        with open(img_file_name_mapping, "r") as f:
+            img_mapping = json.load(f)  # mapping of image file names to shorter file names
 
     model_id = model_id
     processor = LlavaNextProcessor.from_pretrained(model_id)
