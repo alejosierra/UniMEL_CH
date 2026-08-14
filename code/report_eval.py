@@ -55,6 +55,9 @@ def analyze_reranking_performance(json_file_path):
         results.columns = pd.MultiIndex.from_tuples(results.columns, names=['metric', 'stat'])
         results = results.sort_index(axis=1, level=[0, 1])
 
+    # multiply all metrics by 100 to convert to percentage
+    results *= 100
+
     # Print results in a formatted way
     print("\n" + "="*60)
     print("MODEL PERFORMANCE: BEFORE vs AFTER RERANKING")
@@ -77,6 +80,20 @@ def analyze_reranking_performance(json_file_path):
             print(f"  Degradation: {improvement:.4f}")
         else:
             print("  No change")
+
+    # reorder columns to get the metrics in this order: recall@k (sorted by k), MAP, MRR
+    def metric_sort_key(metric):
+        if metric.startswith('recall@'):
+            k = int(metric.split('@')[1])
+            return (0, k)
+        elif metric == 'MAP':
+            return (1, 0)
+        elif metric == 'MRR':
+            return (2, 0)
+        else:
+            return (3, 0)  # Other metrics come last
+
+    results = results.reindex(sorted(results.columns, key=lambda x: metric_sort_key(x[0])), axis=1)
 
     # Save results to a CSV file
     csv_filename = json_file_path.replace('.json', '_summary.csv')

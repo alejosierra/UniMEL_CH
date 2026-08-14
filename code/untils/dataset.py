@@ -1,4 +1,5 @@
 import os
+from typing import Iterable, Sequence, Any, Dict, List, Tuple, Union
 os.environ["CUDA_VISIBLE_DEVICES"]="0"
 import torch
 from tqdm import tqdm
@@ -535,7 +536,7 @@ def infer(*, model_id, ckpt_id, max_length, database_sum, mention_topK_dir, res_
         json.dump(pred, f)
 
 
-def eval(*, inference_res, topk_file, mentions_file, save_reranked=None, ks=(1, 10, 50, 100)):
+def eval(*, inference_res, topk_file, mentions_file, save_reranked=None, ks=(1, 5, 10, 30, 50, 100)):
     """Evaluate re-ranked top-K using inference results.
 
     Parameters
@@ -553,206 +554,136 @@ def eval(*, inference_res, topk_file, mentions_file, save_reranked=None, ks=(1, 
     - If ground-truth entity is not found in the final ranking, treat its rank as 101.
     - Returns a dict with recall@k, MRR and MAP.
     """
-    # load files
-    with open(inference_res, 'r') as f:
-        inf = json.load(f)
-    with open(topk_file, 'r') as f:
-        topk_mentions = json.load(f)
-    with open(mentions_file, 'r') as f:
-        mentions_orig = json.load(f)
+    missing_rank = 101
+    def iter_mentions(obj: Union[List[Dict[str, Any]], Dict[str, Dict[str, Any]]]
+                          ) -> Iterable[Tuple[str, Dict[str, Any]]]:
+        return obj.items() if isinstance(obj, dict) else ((m.get("ids"), m) for m in obj)
 
-    # build maps by mention id
-    topk_map = {m['ids']: m for m in topk_mentions}
-    inf_map = {r['ids']: r for r in inf}
-    # if mentions_orig contains additional info use that for ground truth ordering
-
-    ranks = []  # reranked: 1-based rank for each mention (101 if missing)
-    ranks_before = []  # baseline ranks on original top-K
-    reranked_output = []
-    ap_before_list = []
-
-    num_mentions = 0
-    # support mentions file being either a dict (id -> mention) or a list of mention dicts
-    if isinstance(mentions_orig, dict):
-        mention_items = list(mentions_orig.items())
-    else:
-        mention_items = [(m.get('ids'), m) for m in mentions_orig]
-
-    for mid, m in mention_items:
-        if mid is None:
-            continue
-        topk_entry = topk_map.get(mid)
-        if not topk_entry:
-            # no topk available, assume empty
-            topk_list = []
+    def parse_predictions(raw: Any, candidates: Sequence[str]) -> List[str]:
+        if not raw:
+            return []
+        if isinstance(raw, list):
+            seq = [str(x) for x in raw]
         else:
-            topk_list = topk_entry.get('new_cands', [])
-        K = len(topk_list) if len(topk_list) > 0 else None
-        # determine ground-truth ids for this mention (use depicted_entities as in wikimusa_prepare_ft)
-        gt_ids = []
-        try:
-            gt_ids = m.get('depicted_entities', []) or []
-        except Exception:
-            gt_ids = []
-
-        # compute intersection between top-K and ground truth (skip mentions with no intersection)
-        filtered_gt = [g for g in gt_ids if g in topk_list]
-        if not filtered_gt:
-            # skip mentions without any ground truth inside the top-K candidates
-            continue
-
-        num_mentions += 1
-
-        # get inference prediction for this mention
-        pred_raw = ''
-        if mid in inf_map:
-            pred_raw = inf_map[mid].get('pred', '')
-
-        # parse predictions
-        preds = []
-        if isinstance(pred_raw, list):
-            preds = pred_raw
-        else:
-            s = str(pred_raw)
-            # first try to find Q-ids
+            s = str(raw)
             qids = re.findall(r"Q\d+", s)
             if qids:
-                preds = qids
+                seq = qids
             else:
-                # find integers -> treat as indices (0-based) into topk_list
-                ints = re.findall(r"\d+", s)
-                if ints and topk_list:
-                    for it in ints:
-                        idx = int(it)
-                        if 0 <= idx < len(topk_list):
-                            preds.append(topk_list[idx])
+                ints = [int(i) for i in re.findall(r"\d+", s)]
+                if ints and candidates:
+                    seq = [candidates[i] for i in ints if 0 <= i < len(candidates)]
                 else:
-                    # fallback: tokens that appear in topk_list
-                    tokens = re.split(r"[\s,;]+", s)
-                    for t in tokens:
-                        if t in topk_list:
-                            preds.append(t)
+                    seq = [tok for tok in re.split(r"[\s,;]+", s) if tok in candidates]
+        seen, out = set(), []
+        for item in seq:
+            if item not in seen:
+                seen.add(item)
+                out.append(item)
+        return out
 
-        # deduplicate while preserving order
-        seen = set()
-        inferred_filtered = []
-        for p in preds:
-            if p in seen:
-                continue
-            seen.add(p)
-            inferred_filtered.append(p)
+    def relevant_ranks(ranking: Sequence[str], relevant: Sequence[str]) -> List[int]:
+        return [
+            (ranking.index(rel) + 1) if rel in ranking else missing_rank
+            for rel in relevant
+        ]
 
-        # Build new ranking: inferred_filtered first, then remaining from topk_list preserving order
-        new_rank = []
-        for p in inferred_filtered:
-            new_rank.append(p)
-        for c in topk_list:
-            if c not in seen:
-                new_rank.append(c)
+    def average_precision(ranking: Sequence[str], relevant: Sequence[str]) -> float:
+        if not relevant:
+            return 0.0
+        relevant_set, hits, total = set(relevant), 0, 0.0
+        for idx, cand in enumerate(ranking, start=1):
+            if cand in relevant_set:
+                hits += 1
+                total += hits / idx
+        return total / len(relevant)
 
-        # ensure length equals original K
-        if K is not None:
-            new_rank = new_rank[:K]
+    def first_relevant_rank(ranks: Sequence[int]) -> int:
+        return min(ranks) if ranks else missing_rank
 
-        # compute baseline rank(s) on original top-K
-        found_positions_before = []
-        for g in filtered_gt:
-            try:
-                posb = topk_list.index(g) + 1
-                found_positions_before.append(posb)
-            except ValueError:
-                continue
+    def mean(values: Sequence[float]) -> float:
+        return sum(values) / len(values) if values else 0.0
 
-        if found_positions_before:
-            rb = min(found_positions_before)
-        else:
-            rb = 101
+    # --- load inputs -------------------------------------------------------
+    with open(inference_res, "r", encoding="utf-8") as f:
+        inference = json.load(f)
+    with open(topk_file, "r", encoding="utf-8") as f:
+        topk_mentions = json.load(f)
+    with open(mentions_file, "r", encoding="utf-8") as f:
+        mentions = json.load(f)
 
-        # compute Average Precision for baseline ranking
-        num_rel = len(filtered_gt)
-        if num_rel > 0:
-            hit_count_b = 0
-            sum_precisions_b = 0.0
-            for idxb, candb in enumerate(topk_list, start=1):
-                if candb in filtered_gt:
-                    hit_count_b += 1
-                    sum_precisions_b += hit_count_b / float(idxb)
-            ap_b = sum_precisions_b / float(num_rel)
-        else:
-            ap_b = 0.0
+    topk_map = {m["ids"]: m for m in topk_mentions}
+    inf_map = {r["ids"]: r for r in inference}
 
-        ranks_before.append(rb)
-        ap_before_list.append(ap_b)
+    evaluations = []
 
-        # compute rank(s) for the filtered ground truth set (after reranking)
-        found_positions = []
-        for g in filtered_gt:
-            try:
-                pos = new_rank.index(g) + 1
-                found_positions.append(pos)
-            except ValueError:
-                # if a filtered_gt was in topk_list it should be in new_rank, but handle defensively
-                continue
+    for mid, mention in iter_mentions(mentions):
+        if mid is None:
+            continue
+        topk_list = list(topk_map.get(mid, {}).get("new_cands", []))
+        # if not topk_list:
+        #     continue
 
-        if found_positions:
-            r = min(found_positions)
-        else:
-            r = 101
+        gt = mention.get("depicted_entities", []) or []
+        filtered_gt = [g for g in gt if g in topk_list]
+        # if not filtered_gt:
+        #     continue
 
-        # compute Average Precision for this query (after reranking)
-        if num_rel > 0:
-            hit_count = 0
-            sum_precisions = 0.0
-            for idx, cand in enumerate(new_rank, start=1):
-                if cand in filtered_gt:
-                    hit_count += 1
-                    sum_precisions += hit_count / float(idx)
-            ap = sum_precisions / float(num_rel)
-        else:
-            ap = 0.0
+        preds = parse_predictions(inf_map.get(mid, {}).get("pred"), topk_list)
+        reranked = (preds + [c for c in topk_list if c not in preds])[: len(topk_list)]
 
-        ranks.append(r)
-        reranked_output.append({'ids': mid, 'reranked': new_rank, 'gt_rank': r, 'AP': ap, 'baseline_rank': rb, 'baseline_AP': ap_b})
+        baseline_ranks = relevant_ranks(topk_list, filtered_gt)
+        reranked_ranks = relevant_ranks(reranked, filtered_gt)
 
-    # compute metrics for baseline and reranked
-    results = {}
-    n_before = len(ranks_before)
-    n_after = len(ranks)
-    if n_after == 0:
-        for k in ks:
-            results[f'recall_before@{k}'] = 0.0
-            results[f'recall_after@{k}'] = 0.0
-        results['MRR_before'] = 0.0
-        results['MRR_after'] = 0.0
-        results['MAP_before'] = 0.0
-        results['MAP_after'] = 0.0
+        evaluations.append(
+            {
+                "ids": mid,
+                "reranked": reranked,
+                "baseline_rel_ranks": baseline_ranks,
+                "reranked_rel_ranks": reranked_ranks,
+                "baseline_rank": first_relevant_rank(baseline_ranks),
+                "reranked_rank": first_relevant_rank(reranked_ranks),
+                "baseline_AP": average_precision(topk_list, filtered_gt),
+                "AP": average_precision(reranked, filtered_gt),
+                "num_rel": len(gt),
+            }
+        )
+
+    if not evaluations:
+        results = {f"recall_before@{k}": 0.0 for k in ks}
+        results.update({f"recall_after@{k}": 0.0 for k in ks})
+        results.update({"MRR_before": 0.0, "MRR_after": 0.0, "MAP_before": 0.0, "MAP_after": 0.0})
         print("No mentions with ground truth in top-K; nothing to evaluate")
+        print(json.dumps(results, indent=2))
         return results
 
-    # recalls
+    def recall_macro(rank_lists: Sequence[Sequence[int]], k: int, num_rels: Sequence[int]) -> float:
+        per_query = [
+            sum(1 for r in ranks if r <= k) / n_rel if n_rel else 0.0
+            for ranks, n_rel in zip(rank_lists, num_rels)
+        ]
+        return mean(per_query)
+
+    baseline_rank_lists = [e["baseline_rel_ranks"] for e in evaluations]
+    reranked_rank_lists = [e["reranked_rel_ranks"] for e in evaluations]
+    num_rels = [e["num_rel"] for e in evaluations]
+    baseline_first = [e["baseline_rank"] for e in evaluations]
+    reranked_first = [e["reranked_rank"] for e in evaluations]
+    baseline_APs = [e["baseline_AP"] for e in evaluations]
+    reranked_APs = [e["AP"] for e in evaluations]
+
+    results: Dict[str, float] = {}
     for k in ks:
-        recall_b = sum(1 for r in ranks_before if r <= k) / n_before if n_before > 0 else 0.0
-        recall_a = sum(1 for r in ranks if r <= k) / n_after if n_after > 0 else 0.0
-        results[f'recall_before@{k}'] = recall_b
-        results[f'recall_after@{k}'] = recall_a
+        results[f"recall@{k}_before"] = recall_macro(baseline_rank_lists, k, num_rels)
+        results[f"recall@{k}_after"] = recall_macro(reranked_rank_lists, k, num_rels)
+    results["MRR_before"] = mean([1 / r for r in baseline_first])
+    results["MRR_after"] = mean([1 / r for r in reranked_first])
+    results["MAP_before"] = mean(baseline_APs)
+    results["MAP_after"] = mean(reranked_APs)
 
-    # MRRs
-    mrr_b = sum(1.0 / float(r) for r in ranks_before) / n_before if n_before > 0 else 0.0
-    mrr_a = sum(1.0 / float(r) for r in ranks) / n_after if n_after > 0 else 0.0
-    results['MRR_before'] = mrr_b
-    results['MRR_after'] = mrr_a
-
-    # MAPs
-    map_b = sum(ap_before_list) / n_before if n_before > 0 else 0.0
-    map_a = sum(item.get('AP', 0.0) for item in reranked_output) / n_after if n_after > 0 else 0.0
-    results['MAP_before'] = map_b
-    results['MAP_after'] = map_a
-
-    # optionally save reranked output
     if save_reranked:
-        with open(save_reranked, 'w') as f:
-            json.dump(reranked_output, f)
+        with open(save_reranked, "w", encoding="utf-8") as f:
+            json.dump(evaluations, f)
 
-    # print concise results
     print(json.dumps(results, indent=2))
     return results
